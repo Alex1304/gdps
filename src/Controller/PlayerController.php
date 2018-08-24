@@ -23,7 +23,6 @@ class PlayerController extends Controller
     	if (!empty($r->request->get('udid')) || !empty($r->request->get('uuid'))) {
     		$players = $em->getRepository(Player::class)->findBy([
     			'udid' => $r->request->get('udid'),
-    			'uuid' => $r->request->get('uuid'),
     		]);
 
     		$player = null;
@@ -38,8 +37,9 @@ class PlayerController extends Controller
     		if (!$player) {
     			$player = new Player();
     			$player->setUdid($r->request->get('udid'));
-    			$player->setUuid($r->request->get('uuid'));
     		}
+
+    		$player->setUuid($r->request->get('uuid'));
     	} else {
     		$account = $gdac->checkFromRequest($r);
     		if (is_numeric($account))
