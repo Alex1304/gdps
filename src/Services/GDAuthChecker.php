@@ -6,7 +6,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 
 use App\Entity\Account;
+use App\Entity\Player;
 
+/**
+ * Service that authenticates a user from his accountID and encoded password (gjp)
+ */
 class GDAuthChecker
 {
 	const ACCOUNT_BAD_REQUEST = 1;
@@ -23,12 +27,9 @@ class GDAuthChecker
 		$this->em = $em;
 		$this->b64 = $b64;
 	}
-
-	public function checkFromRequest(Request $r)
+	
+	public function check($accountID, $gjp)
 	{
-		$accountID = $r->request->get('accountID');
-		$gjp = $r->request->get('gjp');
-
 		if (empty($accountID) || !is_numeric($accountID) || empty($gjp))
 			return self::ACCOUNT_BAD_REQUEST;
 
@@ -40,5 +41,10 @@ class GDAuthChecker
 		$decodedGJP = $this->xor->cipher($this->b64->decode($gjp), XORCipher::KEY_GJP);
 
 		return $account->getPassword() === password_hash($decodedGJP, PASSWORD_BCRYPT) ? $account : self::ACCOUNT_UNAUTHORIZED;
+	}
+
+	public function checkFromRequest(Request $r)
+	{
+		return $this->check($r->request->get('accountID'), $r->request->get('gjp'));
 	}
 }

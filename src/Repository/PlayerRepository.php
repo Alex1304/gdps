@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Player;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bridge\Doctrine\RegistryInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @method Player|null find($id, $lockMode = null, $lockVersion = null)
@@ -19,32 +20,65 @@ class PlayerRepository extends ServiceEntityRepository
         parent::__construct($registry, Player::class);
     }
 
-//    /**
-//     * @return Player[] Returns an array of Player objects
-//     */
-    /*
-    public function findByExampleField($value)
+    /**
+     * Finds a player that meets the following requirements:
+     * - the deviceID matches exactly the one given in argument
+     * - the player doesn't have any associated account
+     *
+     * null is returned if not found.
+     */
+    public function findUnregisteredByDeviceID(string $deviceID): ?Player
     {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('p.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+        $players = $this->findBy([
+            'deviceID' => $deviceID,
+        ]);
 
-    /*
-    public function findOneBySomeField($value): ?Player
+        $player = null;
+
+        foreach($players as $e) {
+            if ($e->getAccount() == null) {
+                $player = $e;
+                break;
+            }
+        }
+
+        return $player;
+    }
+
+    public function topLeaderboard(int $count)
     {
         return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
+            ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
+            ->setMaxResults($count)
             ->getQuery()
-            ->getOneOrNullResult()
-        ;
+            ->getResult();
     }
-    */
+
+    public function relativeLeaderboard(Player $player, int $count)
+    {
+        $qb = $this->createQueryBuilder('p');
+        $rank = $qb
+            ->select('COUNT(p.id)')
+            ->where($qb->expr()->orX(
+                $qb->expr()->gt('p.stars', ':pstars'),
+                $qb->expr()->andX(
+                    $qb->expr()->eq('p.stars', ':pstars'),
+                    $qb->expr()->lt('p.statsLastUpdatedAt', ':ptime')
+                )
+            ))
+            ->setParameter('pstars', $player->getStars())
+            ->setParameter('ptime', $player->getStatsLastUpdatedAt())
+            ->getQuery()
+            ->getSingleScalarResult() + 1;
+
+        return [
+            'result' => $this->createQueryBuilder('p')
+                ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
+                ->setFirstResult(max(0, $rank - $count / 2))
+                ->setMaxResults($count)
+                ->getQuery()
+                ->getResult(),
+            'rank' => $rank,
+        ];
+    }
 }

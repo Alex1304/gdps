@@ -6,6 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\PlayerRepository")
+ * @ORM\Table(name="player", indexes={@ORM\Index(name="leaderboards_idx", columns={"stars"}), @ORM\Index(name="usersearch_idx", columns={"name"}), @ORM\Index(name="cp_leaderboard_idx", columns={"creator_points"})})
  */
 class Player
 {
@@ -19,12 +20,7 @@ class Player
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $udid;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $uuid;
+    private $deviceID;
 
     /**
      * @ORM\Column(type="string", length=255)
@@ -77,7 +73,7 @@ class Player
     private $userCoins;
 
     /**
-     * @ORM\Column(type="boolean")
+     * @ORM\Column(type="integer")
      */
     private $special;
 
@@ -131,36 +127,34 @@ class Player
      */
     private $account;
 
-    public function getId(): int
+    /**
+     * @ORM\Column(type="datetime")
+     */
+    private $statsLastUpdatedAt;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $creatorPoints;
+
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getUdid(): string
+    public function getDeviceID(): ?string
     {
-        return $this->udid;
+        return $this->deviceID;
     }
 
-    public function setUdid(string $udid): self
+    public function setDeviceID(string $deviceID): self
     {
-        $this->udid = $udid;
+        $this->deviceID = $deviceID;
 
         return $this;
     }
 
-    public function getUuid(): string
-    {
-        return $this->uuid;
-    }
-
-    public function setUuid(string $uuid): self
-    {
-        $this->uuid = $uuid;
-
-        return $this;
-    }
-
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -172,7 +166,7 @@ class Player
         return $this;
     }
 
-    public function getStars(): int
+    public function getStars(): ?int
     {
         return $this->stars;
     }
@@ -184,7 +178,7 @@ class Player
         return $this;
     }
 
-    public function getDemons(): int
+    public function getDemons(): ?int
     {
         return $this->demons;
     }
@@ -196,7 +190,7 @@ class Player
         return $this;
     }
 
-    public function getDiamonds(): int
+    public function getDiamonds(): ?int
     {
         return $this->diamonds;
     }
@@ -208,7 +202,7 @@ class Player
         return $this;
     }
 
-    public function getIcon(): int
+    public function getIcon(): ?int
     {
         return $this->icon;
     }
@@ -220,7 +214,7 @@ class Player
         return $this;
     }
 
-    public function getColor1(): int
+    public function getColor1(): ?int
     {
         return $this->color1;
     }
@@ -232,7 +226,7 @@ class Player
         return $this;
     }
 
-    public function getColor2(): int
+    public function getColor2(): ?int
     {
         return $this->color2;
     }
@@ -244,7 +238,7 @@ class Player
         return $this;
     }
 
-    public function getIconType(): int
+    public function getIconType(): ?int
     {
         return $this->iconType;
     }
@@ -256,7 +250,7 @@ class Player
         return $this;
     }
 
-    public function getCoins(): int
+    public function getCoins(): ?int
     {
         return $this->coins;
     }
@@ -268,7 +262,7 @@ class Player
         return $this;
     }
 
-    public function getUserCoins(): int
+    public function getUserCoins(): ?int
     {
         return $this->userCoins;
     }
@@ -280,19 +274,19 @@ class Player
         return $this;
     }
 
-    public function getSpecial(): bool
+    public function getSpecial(): ?int
     {
         return $this->special;
     }
 
-    public function setSpecial(bool $special): self
+    public function setSpecial(int $special): self
     {
         $this->special = $special;
 
         return $this;
     }
 
-    public function getAccIcon(): int
+    public function getAccIcon(): ?int
     {
         return $this->accIcon;
     }
@@ -304,7 +298,7 @@ class Player
         return $this;
     }
 
-    public function getAccShip(): int
+    public function getAccShip(): ?int
     {
         return $this->accShip;
     }
@@ -316,7 +310,7 @@ class Player
         return $this;
     }
 
-    public function getAccBall(): int
+    public function getAccBall(): ?int
     {
         return $this->accBall;
     }
@@ -328,7 +322,7 @@ class Player
         return $this;
     }
 
-    public function getAccUFO(): int
+    public function getAccUFO(): ?int
     {
         return $this->accUFO;
     }
@@ -340,7 +334,7 @@ class Player
         return $this;
     }
 
-    public function getAccWave(): int
+    public function getAccWave(): ?int
     {
         return $this->accWave;
     }
@@ -352,7 +346,7 @@ class Player
         return $this;
     }
 
-    public function getAccRobot(): int
+    public function getAccRobot(): ?int
     {
         return $this->accRobot;
     }
@@ -364,7 +358,7 @@ class Player
         return $this;
     }
 
-    public function getAccGlow(): int
+    public function getAccGlow(): ?int
     {
         return $this->accGlow;
     }
@@ -376,7 +370,7 @@ class Player
         return $this;
     }
 
-    public function getAccSpider(): int
+    public function getAccSpider(): ?int
     {
         return $this->accSpider;
     }
@@ -388,7 +382,7 @@ class Player
         return $this;
     }
 
-    public function getAccExplosion(): int
+    public function getAccExplosion(): ?int
     {
         return $this->accExplosion;
     }
@@ -400,12 +394,12 @@ class Player
         return $this;
     }
 
-    public function getAccount(): Account
+    public function getAccount(): ?Account
     {
         return $this->account;
     }
 
-    public function setAccount(Account $account): self
+    public function setAccount(?Account $account): self
     {
         $this->account = $account;
 
@@ -414,6 +408,30 @@ class Player
         if ($newPlayer !== $account->getPlayer()) {
             $account->setPlayer($newPlayer);
         }
+
+        return $this;
+    }
+
+    public function getStatsLastUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->statsLastUpdatedAt;
+    }
+
+    public function setStatsLastUpdatedAt(\DateTimeInterface $statsLastUpdatedAt): self
+    {
+        $this->statsLastUpdatedAt = $statsLastUpdatedAt;
+
+        return $this;
+    }
+
+    public function getCreatorPoints(): ?int
+    {
+        return $this->creatorPoints;
+    }
+
+    public function setCreatorPoints(int $creatorPoints): self
+    {
+        $this->creatorPoints = $creatorPoints;
 
         return $this;
     }

@@ -57,12 +57,12 @@ class Account
      */
     private $player;
 
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getUsername(): string
+    public function getUsername(): ?string
     {
         return $this->username;
     }
@@ -74,7 +74,7 @@ class Account
         return $this;
     }
 
-    public function getPassword(): string
+    public function getPassword(): ?string
     {
         return $this->password;
     }
@@ -86,7 +86,7 @@ class Account
         return $this;
     }
 
-    public function getEmail(): string
+    public function getEmail(): ?string
     {
         return $this->email;
     }
@@ -98,7 +98,7 @@ class Account
         return $this;
     }
 
-    public function getYoutube(): string
+    public function getYoutube(): ?string
     {
         return $this->youtube;
     }
@@ -110,7 +110,7 @@ class Account
         return $this;
     }
 
-    public function getTwitter(): string
+    public function getTwitter(): ?string
     {
         return $this->twitter;
     }
@@ -122,7 +122,7 @@ class Account
         return $this;
     }
 
-    public function getTwitch(): string
+    public function getTwitch(): ?string
     {
         return $this->twitch;
     }
@@ -134,7 +134,7 @@ class Account
         return $this;
     }
 
-    public function getRegisteredAt(): \DateTimeInterface
+    public function getRegisteredAt(): ?\DateTimeInterface
     {
         return $this->registered_at;
     }
@@ -146,7 +146,7 @@ class Account
         return $this;
     }
 
-    public function getPlayer(): Player
+    public function getPlayer(): ?Player
     {
         return $this->player;
     }

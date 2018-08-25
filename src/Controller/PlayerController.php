@@ -8,45 +8,21 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 use App\Entity\Player;
-use App\Services\GDAuthChecker;
+use App\Services\PlayerManager;
 
 class PlayerController extends Controller
 {
     /**
-     * @Route("/updateGJUserScore22.php", name="update_score")
+     * @Route("/updateGJUserScore22.php", name="update_stats")
      */
-    public function updateScore(Request $r, GDAuthChecker $gdac)
+    public function updateStats(Request $r, PlayerManager $pm): Response
     {	
     	$em = $this->getDoctrine()->getManager();
 
-    	// Case where user is unregistered
-    	if (!empty($r->request->get('udid')) || !empty($r->request->get('uuid'))) {
-    		$players = $em->getRepository(Player::class)->findBy([
-    			'udid' => $r->request->get('udid'),
-    		]);
+    	$player = $pm->getFromRequest($r);
 
-    		$player = null;
-
-    		foreach($players as $e) {
-    			if ($e->getAccount() == null) {
-    				$player = $e;
-    				break;
-    			}
-    		}
-
-    		if (!$player) {
-    			$player = new Player();
-    			$player->setUdid($r->request->get('udid'));
-    		}
-
-    		$player->setUuid($r->request->get('uuid'));
-    	} else {
-    		$account = $gdac->checkFromRequest($r);
-    		if (is_numeric($account))
-    			return new Response('-1');
-
-    		$player = $account->getPlayer();
-    	}
+    	if (!$player)
+    		return new Response('-1');
 
     	$player->setName($r->request->get('userName'));
     	$player->setStars($r->request->get('stars'));
@@ -68,10 +44,58 @@ class PlayerController extends Controller
     	$player->setAccGlow($r->request->get('accGlow'));
     	$player->setAccSpider($r->request->get('accSpider'));
     	$player->setAccExplosion($r->request->get('accExplosion'));
+    	$player->setStatsLastUpdatedAt(new \DateTime());
+    	$player->setCreatorPoints($pm->calculateCreatorPoints($player));
 
     	$em->persist($player);
     	$em->flush();
 
     	return new Response($player->getId());
+    }
+
+    /**
+     * @Route("/getGJScores20.php", name="get_leaderboard")
+     */
+    public function getLeaderboard(Request $r, PlayerManager $pm): Response
+    {
+    	if (empty($r->request->get('type')) || empty($r->request->get('count')) || !is_numeric($r->request->get('count'))
+    			|| !in_array($r->request->get('type'), ['relative', 'creators', 'top', 'friends']))
+    		return new Response('-1');
+
+    	$em = $this->getDoctrine()->getManager();
+
+    	$player = $pm->getFromRequest($r);
+    	$playerList = null;
+    	$rankOffset = 1;
+
+    	if (!$player)
+    		return new Response('-1');
+
+    	switch ($r->request->get('type')) {
+    		case 'relative':
+    			$result = $em->getRepository(Player::class)->relativeLeaderboard($player, $r->request->get('count'));
+    			$playerList = $result['result'];
+    			$rankOffset = max(1, $result['rank'] - (int) $r->request->get('count') / 2);
+    			break;
+    		case 'creators':
+    			return new Response('-1'); // Not yet implemented
+    			break;
+    		case 'top':
+    			$playerList = $em->getRepository(Player::class)->topLeaderboard($r->request->get('count'));
+    			break;
+    		case 'friends':
+    			return new Response('-1'); // Not yet implemented
+    			break;
+    		default:
+    			return new Response('-1');
+    	}
+
+    	if ($playerList === null || count($playerList) === 0)
+    		return new Response('-1');
+
+    	return $this->render('leaderboards/leaderboards.html.twig', [
+    		'playerList' => $playerList,
+    		'rankOffset' => $rankOffset,
+    	]);
     }
 }
