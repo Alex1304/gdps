@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Entity\Player;
 use App\Services\PlayerManager;
 
-class PlayerController extends Controller
+class LeaderboardsController extends Controller
 {
     /**
      * @Route("/updateGJUserScore22.php", name="update_stats")
@@ -78,7 +78,7 @@ class PlayerController extends Controller
     			$rankOffset = max(1, $result['rank'] - (int) $r->request->get('count') / 2);
     			break;
     		case 'creators':
-    			return new Response('-1'); // Not yet implemented
+    			$playerList = $em->getRepository(Player::class)->creatorLeaderboard($r->request->get('count'));
     			break;
     		case 'top':
     			$playerList = $em->getRepository(Player::class)->topLeaderboard($r->request->get('count'));

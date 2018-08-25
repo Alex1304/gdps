@@ -81,4 +81,14 @@ class PlayerRepository extends ServiceEntityRepository
             'rank' => $rank,
         ];
     }
+
+    public function creatorLeaderboard(int $count)
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.creatorPoints > 0')
+            ->orderBy('p.creatorPoints DESC, p.statsLastUpdatedAt')
+            ->setMaxResults($count)
+            ->getQuery()
+            ->getResult();
+    }
 }
