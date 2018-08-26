@@ -109,10 +109,10 @@ class Level
     private $lastUpdatedAt;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\Player", inversedBy="difficultyVotedLevels")
-     * @ORM\JoinTable(name="level_difficulty_votes")
+     * @ORM\ManyToMany(targetEntity="App\Entity\Player", inversedBy="starVotedLevels")
+     * @ORM\JoinTable(name="level_star_votes")
      */
-    private $difficultyVotedBy;
+    private $starVotedBy;
 
     /**
      * @ORM\Column(type="integer")
@@ -165,6 +165,31 @@ class Level
      */
     private $coins;
 
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $difficulty;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $demonDifficulty;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isDemon;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isAuto;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $hasCoinsVerified;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
@@ -172,6 +197,7 @@ class Level
         $this->dislikedBy = new ArrayCollection();
         $this->difficultyVotedBy = new ArrayCollection();
         $this->demonVotedBy = new ArrayCollection();
+        $this->starVotedBy = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -428,24 +454,24 @@ class Level
     /**
      * @return Collection|Player[]
      */
-    public function getDifficultyVotedBy(): Collection
+    public function getStarVotedBy(): Collection
     {
-        return $this->difficultyVotedBy;
+        return $this->starVotedBy;
     }
 
-    public function addDifficultyVotedBy(Player $difficultyVotedBy): self
+    public function addStarVotedBy(Player $starVotedBy): self
     {
-        if (!$this->difficultyVotedBy->contains($difficultyVotedBy)) {
-            $this->difficultyVotedBy[] = $difficultyVotedBy;
+        if (!$this->starVotedBy->contains($starVotedBy)) {
+            $this->starVotedBy[] = $starVotedBy;
         }
 
         return $this;
     }
 
-    public function removeDifficultyVotedBy(Player $difficultyVotedBy): self
+    public function removeStarVotedBy(Player $starVotedBy): self
     {
-        if ($this->difficultyVotedBy->contains($difficultyVotedBy)) {
-            $this->difficultyVotedBy->removeElement($difficultyVotedBy);
+        if ($this->starVotedBy->contains($starVotedBy)) {
+            $this->starVotedBy->removeElement($starVotedBy);
         }
 
         return $this;
@@ -581,6 +607,90 @@ class Level
     public function setCoins(int $coins): self
     {
         $this->coins = $coins;
+
+        return $this;
+    }
+
+    public function getVotedDifficulty(): ?int
+    {
+        return $this->votedDifficulty;
+    }
+
+    public function setVotedDifficulty(int $votedDifficulty): self
+    {
+        $this->votedDifficulty = $votedDifficulty;
+
+        return $this;
+    }
+
+    public function getVotedDemon(): ?int
+    {
+        return $this->votedDemon;
+    }
+
+    public function setVotedDemon(int $votedDemon): self
+    {
+        $this->votedDemon = $votedDemon;
+
+        return $this;
+    }
+
+    public function getDifficulty(): ?int
+    {
+        return $this->difficulty;
+    }
+
+    public function setDifficulty(int $difficulty): self
+    {
+        $this->difficulty = $difficulty;
+
+        return $this;
+    }
+
+    public function getDemonDifficulty(): ?int
+    {
+        return $this->demonDifficulty;
+    }
+
+    public function setDemonDifficulty(int $demonDifficulty): self
+    {
+        $this->demonDifficulty = $demonDifficulty;
+
+        return $this;
+    }
+
+    public function getIsDemon(): ?bool
+    {
+        return $this->isDemon;
+    }
+
+    public function setIsDemon(bool $isDemon): self
+    {
+        $this->isDemon = $isDemon;
+
+        return $this;
+    }
+
+    public function getIsAuto(): ?bool
+    {
+        return $this->isAuto;
+    }
+
+    public function setIsAuto(bool $isAuto): self
+    {
+        $this->isAuto = $isAuto;
+
+        return $this;
+    }
+
+    public function getHasCoinsVerified(): ?bool
+    {
+        return $this->hasCoinsVerified;
+    }
+
+    public function setHasCoinsVerified(bool $hasCoinsVerified): self
+    {
+        $this->hasCoinsVerified = $hasCoinsVerified;
 
         return $this;
     }

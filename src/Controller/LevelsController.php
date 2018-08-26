@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 use App\Services\PlayerManager;
+use App\Services\SongProvider;
 use App\Entity\Level;
 
 class LevelsController extends AbstractController
@@ -71,14 +72,101 @@ class LevelsController extends AbstractController
         $em->persist($level);
         $em->flush();
 
-        return new Response($level->getId()); // Not yet implemented
+        return new Response($level->getId());
     }
 
     /**
      * @Route("/getGJLevels21.php", name="get_levels")
      */
-    public function getLevels(Request $r, PlayerManager $pm)
+    public function getLevels(Request $r, PlayerManager $pm, SongProvider $sp)
     {
-        return new Response('-1'); // Not yet implemented
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        $levels = [];
+        $total = 9999;
+
+        // Types table:
+        // 0 : regular search
+        // 1 : most downloaded
+        // 2 : most liked
+        // 3 : trending
+        // 5 : by user
+        // 6 : featured
+        // 16 : hall of fame
+        // 7 : magic
+        // 10 : map packs
+        // 11 : awarded
+        // 12 : followed
+        // 13 : friends
+        switch ($r->request->get('type')) {
+            case 0:
+                $query = $em->getRepository(Level::class)->searchLevels($r->request->get('str'), $r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'));
+                $levels = $query['result'];
+                $total = $query['total'];
+                break;
+            /*case 1:
+
+                break;
+            case 2:
+
+                break;
+            case 3:
+
+                break;
+            case 5:
+
+                break;
+            case 6
+
+                break;
+            case 7:
+
+                break;
+            case 10:
+
+                break;
+            case 11:
+
+                break;
+            case 12:
+
+                break;
+            case 13:
+
+                break;
+            case 16:
+
+                break;*/
+            default:
+                return new Response('-1');
+        }
+
+        $songs = [];
+        $creators = [];
+
+        foreach ($levels as $level) {
+            if ($level->getCustomSongID() > 0) {
+                $song = $sp->fetchSong($level->getCustomSongID());
+                if (!in_array($song, $songs))
+                    $songs[] = $song;
+            }
+
+            $creator = [
+                'playerID' => $level->getCreator()->getId(),
+                'name' => $level->getCreator()->getName(),
+                'accountID' => $level->getCreator()->getAccount() != null ? $level->getCreator()->getAccount()->getId() : 0,
+            ];
+            if (!in_array($creator, $creators))
+                $creators[] = $creator;
+        }
+
+        return $this->render('levels/get_levels.html.twig', [
+            'levels' => $levels,
+            'songs' => $songs,
+            'total' => $total,
+            'creators' => $creators,
+            'page' => $r->request->get('page'),
+        ]);
     }
 }
