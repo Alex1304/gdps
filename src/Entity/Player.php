@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -136,6 +138,46 @@ class Player
      * @ORM\Column(type="integer")
      */
     private $creatorPoints;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\Level", mappedBy="creator", orphanRemoval=true)
+     */
+    private $levels;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Level", mappedBy="downloadedBy")
+     */
+    private $downloadedLevels;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Level", mappedBy="likedBy")
+     */
+    private $likedLevels;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Level", mappedBy="dislikedBy")
+     */
+    private $dislikedLevels;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Level", mappedBy="difficultyVotedBy")
+     */
+    private $difficultyVotedLevels;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Level", mappedBy="demonVotedBy")
+     */
+    private $demonVotedLevels;
+
+    public function __construct()
+    {
+        $this->levels = new ArrayCollection();
+        $this->downloadedLevels = new ArrayCollection();
+        $this->likedLevels = new ArrayCollection();
+        $this->dislikedLevels = new ArrayCollection();
+        $this->difficultyVotedLevels = new ArrayCollection();
+        $this->demonVotedLevels = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -432,6 +474,177 @@ class Player
     public function setCreatorPoints(int $creatorPoints): self
     {
         $this->creatorPoints = $creatorPoints;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getLevels(): Collection
+    {
+        return $this->levels;
+    }
+
+    public function addLevel(Level $level): self
+    {
+        if (!$this->levels->contains($level)) {
+            $this->levels[] = $level;
+            $level->setCreator($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevel(Level $level): self
+    {
+        if ($this->levels->contains($level)) {
+            $this->levels->removeElement($level);
+            // set the owning side to null (unless already changed)
+            if ($level->getCreator() === $this) {
+                $level->setCreator(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getDownloadedLevels(): Collection
+    {
+        return $this->downloadedLevels;
+    }
+
+    public function addDownloadedLevel(Level $downloadedLevel): self
+    {
+        if (!$this->downloadedLevels->contains($downloadedLevel)) {
+            $this->downloadedLevels[] = $downloadedLevel;
+            $downloadedLevel->addDownloadedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDownloadedLevel(Level $downloadedLevel): self
+    {
+        if ($this->downloadedLevels->contains($downloadedLevel)) {
+            $this->downloadedLevels->removeElement($downloadedLevel);
+            $downloadedLevel->removeDownloadedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getLikedLevels(): Collection
+    {
+        return $this->likedLevels;
+    }
+
+    public function addLikedLevel(Level $likedLevel): self
+    {
+        if (!$this->likedLevels->contains($likedLevel)) {
+            $this->likedLevels[] = $likedLevel;
+            $likedLevel->addLikedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLikedLevel(Level $likedLevel): self
+    {
+        if ($this->likedLevels->contains($likedLevel)) {
+            $this->likedLevels->removeElement($likedLevel);
+            $likedLevel->removeLikedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getDislikedLevels(): Collection
+    {
+        return $this->dislikedLevels;
+    }
+
+    public function addDislikedLevel(Level $dislikedLevel): self
+    {
+        if (!$this->dislikedLevels->contains($dislikedLevel)) {
+            $this->dislikedLevels[] = $dislikedLevel;
+            $dislikedLevel->addDislikedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDislikedLevel(Level $dislikedLevel): self
+    {
+        if ($this->dislikedLevels->contains($dislikedLevel)) {
+            $this->dislikedLevels->removeElement($dislikedLevel);
+            $dislikedLevel->removeDislikedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getDifficultyVotedLevels(): Collection
+    {
+        return $this->difficultyVotedLevels;
+    }
+
+    public function addDifficultyVotedLevel(Level $difficultyVotedLevel): self
+    {
+        if (!$this->difficultyVotedLevels->contains($difficultyVotedLevel)) {
+            $this->difficultyVotedLevels[] = $difficultyVotedLevel;
+            $difficultyVotedLevel->addDifficultyVotedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDifficultyVotedLevel(Level $difficultyVotedLevel): self
+    {
+        if ($this->difficultyVotedLevels->contains($difficultyVotedLevel)) {
+            $this->difficultyVotedLevels->removeElement($difficultyVotedLevel);
+            $difficultyVotedLevel->removeDifficultyVotedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Level[]
+     */
+    public function getDemonVotedLevels(): Collection
+    {
+        return $this->demonVotedLevels;
+    }
+
+    public function addDemonVotedLevel(Level $demonVotedLevel): self
+    {
+        if (!$this->demonVotedLevels->contains($demonVotedLevel)) {
+            $this->demonVotedLevels[] = $demonVotedLevel;
+            $demonVotedLevel->addDemonVotedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDemonVotedLevel(Level $demonVotedLevel): self
+    {
+        if ($this->demonVotedLevels->contains($demonVotedLevel)) {
+            $this->demonVotedLevels->removeElement($demonVotedLevel);
+            $demonVotedLevel->removeDemonVotedBy($this);
+        }
 
         return $this;
     }
