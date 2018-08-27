@@ -14,6 +14,6 @@ class Base64URL
 
 	public function encode($data)
 	{
-		return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+		return strtr(base64_encode($data), '+/', '-_');
 	}
 }

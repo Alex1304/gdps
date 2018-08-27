@@ -19,11 +19,43 @@ class LevelRepository extends ServiceEntityRepository
         parent::__construct($registry, Level::class);
     }
 
-    public function searchLevels($keywords, $difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star)
+    /**
+     * Returns a query builder with prefilled info to have easy access to download/like count
+     */
+    private function queryBuilderTemplate()
     {
-        $qb = $this->createQueryBuilder('l');
-        $qb->where('l.name LIKE \'' . $keywords . '%\'');
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('l, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount, COUNT(downloads) AS HIDDEN downloadCount')
+            ->from('App\Entity\Level', 'l')
+            ->leftJoin('l.likedBy', 'likes')
+            ->leftJoin('l.dislikedBy', 'dislikes')
+            ->leftJoin('l.downloadedBy', 'downloads')
+            ->where('l.isUnlisted = 0')
+            ->groupBy('l.id')
+            ->orderBy('likeCount', 'DESC');
+    }
 
+    /**
+     * Limits results of the query to show the desired page
+     */
+    private function getPaginatedResult(&$qb, $page)
+    {
+        $total = count($qb->getQuery()->getResult());
+
+        $qb->setFirstResult($page * 10);
+        $qb->setMaxResults(10);
+
+        return [
+            'result' => $qb->getQuery()->getResult(),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Adds WHERE statements to the query according to the given filters
+     */
+    private function applyFilters(&$qb, $difficulties, $lengths, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?bool $customSong)
+    {
         if (preg_match('#^([1-5],)*[1-5]$#', $difficulties))
             $qb->andWhere($qb->expr()->in('l.difficulty', explode(',', $difficulties)));
         else if ($difficulties == '-2')
@@ -58,15 +90,165 @@ class LevelRepository extends ServiceEntityRepository
         if ($star)
             $qb->andWhere('l.stars > 0');
 
-        $total = count($qb->getQuery()->getResult());
+        if ($noStar)
+            $qb->andWhere('l.stars = 0');
 
-        $qb->setFirstResult($page * 10);
-        $qb->setMaxResults(10);
+        if ($song && $customSong)
+            $qb->andWhere('l.customSongID = :song')->setParameter('song', $song);
 
-        return [
-            'result' => $qb->getQuery()->getResult(),
-            'total' => $total,
-        ];
+        if ($song && !$customSong)
+            $qb->andWhere('l.audioTrack = :audio AND l.customSongID = 0')->setParameter('audio', $song);
+
+        if (!$song && $customSong)
+            $qb->andWhere('l.customSongID > 0');
+
+        return $qb;
     }
 
+    /**
+     * Returns levels searched by keywords
+     */
+    public function searchLevels($keywords, $difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andwhere('(l.id = :keywordsID OR l.name LIKE :keywordsName)')
+            ->setParameter('keywordsID', $keywords)
+            ->setParameter('keywordsName', $keywords . '%');
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns the most downloaded levels
+     */
+    public function mostDownloadedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->orderBy('downloadCount');
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns the most liked levels
+     */
+    public function mostLikedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $qb = $this->queryBuilderTemplate();
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+        
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns the most liked levels uploaded less than 1 week ago
+     */
+    public function trendingLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $now = new \DateTime();
+        $weekInterval = new \DateInterval("P7D");
+        $weekInterval->invert = 1;
+        $aWeekAgo = $now->add($weekInterval);
+
+
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere('l.uploadedAt > :interval')
+            ->setParameter('interval', $aWeekAgo);
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+        
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns levels by a specific user
+     */
+    public function levelsByUser($playerID, $player, int $page)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->join('l.creator', 'creator');
+
+        if ($player && $player->getId() == $playerID)
+            $qb->where('creator.id = :playerID');
+        else
+            $qb->andWhere('creator.id = :playerID');
+
+        $qb->setParameter('playerID', $playerID)
+            ->orderBy('l.uploadedAt', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns the levels that should go in the Featured section, sorted by their scores
+     */
+    public function featuredLevels(int $page)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere('l.featureScore <> 0')
+            ->orderBy('l.featureScore DESC, l.id', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns the most recent levels that meets the following requirements:
+     * - the level has more than 25k objects
+     * - the level is original
+     */
+    public function magicLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere('l.objectCount > 25000')
+            ->andWhere('l.original IS NULL')
+            ->orderBy('l.uploadedAt');
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+        
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns levels coming from map packs
+     */
+    public function mapPackLevels($levelList, int $page)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere($qb->expr()->in('l.id', explode(',', $levelList)))
+            ->orderBy('l.featureScore DESC, l.id', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
+     * Returns levels that have a star rating or verified coins
+     */
+    public function awardedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere('l.rewardsGivenAt IS NOT NULL')
+            ->andWhere('(l.stars > 0 OR l.hasCoinsVerified = 1)')
+            ->orderBy('l.rewardsGivenAt');
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong);
+        
+        return $this->getPaginatedResult($qb, $page);   
+    }
+
+    /**
+     * Returns the levels that should go in the Hall of Fame section, sorted by their ID
+     */
+    public function hallOfFame(int $page)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->andWhere('l.isEpic = 1')
+            ->orderby('l.id', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
 }

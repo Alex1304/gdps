@@ -190,12 +190,16 @@ class Level
      */
     private $hasCoinsVerified;
 
+    /**
+     * @ORM\Column(type="datetime", nullable=true)
+     */
+    private $rewardsGivenAt;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
         $this->likedBy = new ArrayCollection();
         $this->dislikedBy = new ArrayCollection();
-        $this->difficultyVotedBy = new ArrayCollection();
         $this->demonVotedBy = new ArrayCollection();
         $this->starVotedBy = new ArrayCollection();
     }
@@ -203,6 +207,13 @@ class Level
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+
+        return $this;
     }
 
     public function getName(): ?string
@@ -691,6 +702,18 @@ class Level
     public function setHasCoinsVerified(bool $hasCoinsVerified): self
     {
         $this->hasCoinsVerified = $hasCoinsVerified;
+
+        return $this;
+    }
+
+    public function getRewardsGivenAt(): ?\DateTimeInterface
+    {
+        return $this->rewardsGivenAt;
+    }
+
+    public function setRewardsGivenAt(?\DateTimeInterface $rewardsGivenAt): self
+    {
+        $this->rewardsGivenAt = $rewardsGivenAt;
 
         return $this;
     }
