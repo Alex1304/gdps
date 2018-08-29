@@ -1,4 +1,5 @@
 <?php
+umask(0000);
 
 use App\Kernel;
 use Symfony\Component\Debug\Debug;
@@ -19,8 +20,6 @@ $env = $_SERVER['APP_ENV'] ?? 'dev';
 $debug = (bool) ($_SERVER['APP_DEBUG'] ?? ('prod' !== $env));
 
 if ($debug) {
-    umask(0000);
-
     Debug::enable();
 }
 

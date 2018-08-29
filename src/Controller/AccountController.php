@@ -74,7 +74,8 @@ class AccountController extends AbstractController
 
     		if (!$player) {
     			$player = new Player();
-    			$player->setName('');
+    			$player->setName('Player');
+    			$player->setDeviceID('none');
 		        $player->setStars(0);
 		        $player->setDemons(0);
 		        $player->setDiamonds(0);
