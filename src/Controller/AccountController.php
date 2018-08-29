@@ -105,4 +105,23 @@ class AccountController extends AbstractController
 
     	return new Response($account->getId() . ',' . $account->getPlayer()->getId());
     }
+
+    /**
+     * @Route("/getGJUserInfo20.php", name="get_user_info")
+     */
+    public function getUserInfo(Request $r, PlayerManager $pm)
+    {
+    	$em = $this->getDoctrine()->getManager();
+    	$player = $pm->getFromRequest($r);
+
+    	$target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+
+    	if (!$target)
+    		return new Response('-1');
+
+    	return $this->render('account/get_user_info.html.twig', [
+    		'account' => $target,
+    		'self' => $player->getAccount() ? $player->getAccount()->getId() === $target->getId() : false,
+    	]);
+    }
 }
