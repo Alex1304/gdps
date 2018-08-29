@@ -19,32 +19,49 @@ class LevelCommentRepository extends ServiceEntityRepository
         parent::__construct($registry, LevelComment::class);
     }
 
-//    /**
-//     * @return LevelComment[] Returns an array of LevelComment objects
-//     */
-    /*
-    public function findByExampleField($value)
+    /**
+     * Returns a query builder with prefilled info to have easy access to like count
+     */
+    private function queryBuilderTemplate()
     {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('l.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('c, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount')
+            ->from('App\Entity\LevelComment', 'c')
+            ->leftJoin('c.likedBy', 'likes')
+            ->leftJoin('c.dislikedBy', 'dislikes')
+            ->groupBy('c.id')
+            ->orderBy('c.postedAt', 'DESC');
     }
-    */
 
-    /*
-    public function findOneBySomeField($value): ?LevelComment
+    /**
+     * Limits results of the query to show the desired page
+     */
+    private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        $total = count($qb->getQuery()->getResult());
+
+        $qb->setFirstResult($page * $count);
+        $qb->setMaxResults($count);
+
+        return [
+            'result' => $qb->getQuery()->getResult(),
+            'total' => $total,
+        ];
     }
-    */
+
+    /**
+     * Returns the comments on the given level. Sort mode is also given in parameter
+     */
+    public function commentsForLevel(int $levelID, int $page, bool $top, ?int $count)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->join('c.level', 'level')
+            ->where('level.id = :id')
+            ->setParameter('id', $levelID);
+
+        if ($top)
+            $qb->orderBy('likeCount', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
 }

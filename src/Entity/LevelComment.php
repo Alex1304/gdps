@@ -52,6 +52,11 @@ class LevelComment
      */
     private $level;
 
+    /**
+     * @ORM\Column(type="integer", nullable=true)
+     */
+    private $percent;
+
     public function __construct()
     {
         $this->likedBy = new ArrayCollection();
@@ -159,6 +164,18 @@ class LevelComment
     public function setLevel(?Level $level): self
     {
         $this->level = $level;
+
+        return $this;
+    }
+
+    public function getPercent(): ?int
+    {
+        return $this->percent;
+    }
+
+    public function setPercent(?int $percent): self
+    {
+        $this->percent = $percent;
 
         return $this;
     }

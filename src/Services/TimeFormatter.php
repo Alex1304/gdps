@@ -12,6 +12,9 @@ class TimeFormatter
 
 		$result = 'Unknown';
 
+		if ($diffSecs < 60)
+			$result = $diffSecs . ' second' . ($diffSecs > 1 ? 's' : '');
+
 		if ($diffSecs >= 60) {
 			$val = $interval->format('%i');
 			$result = $interval->format('%i minute' . ($val > 1 ? 's' : ''));
