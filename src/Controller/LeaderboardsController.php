@@ -45,7 +45,7 @@ class LeaderboardsController extends AbstractController
         $player->setAccSpider($r->request->get('accSpider'));
         $player->setAccExplosion($r->request->get('accExplosion'));
         $player->setStatsLastUpdatedAt(new \DateTime());
-        $player->setCreatorPoints($pm->calculateCreatorPoints($player));
+        $pm->updateCreatorPoints($player);
 
         $em->persist($player);
         $em->flush();

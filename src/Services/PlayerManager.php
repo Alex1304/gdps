@@ -52,8 +52,26 @@ class PlayerManager
     /**
      * Calculates the number of creator points the player should have according to his levels
      */
-    public function calculateCreatorPoints(Player $player)
+    public function calculateCreatorPoints(Player $player): int
     {
-    	return 0; // Not yet implemented
+    	$cp = 0;
+
+    	foreach ($player->getLevels() as $level) {
+    		if ($level->getStars() > 0)
+    			$cp++;
+
+    		if ($level->getFeatureScore() > 0)
+    			$cp++;
+
+    		if ($level->getIsEpic())
+    			$cp++;
+    	}
+
+    	return $cp;
+    }
+
+    public function updateCreatorPoints($player): void
+    {
+    	$player->setCreatorPoints($this->calculateCreatorPoints($player));
     }
 }

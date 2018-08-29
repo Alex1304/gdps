@@ -40,11 +40,16 @@ class GDAuthChecker
 
 		$decodedGJP = $this->xor->cipher($this->b64->decode($gjp), XORCipher::KEY_GJP);
 
-		return $account->getPassword() === password_hash($decodedGJP, PASSWORD_BCRYPT) ? $account : self::ACCOUNT_UNAUTHORIZED;
+		return $this->checkPlain($account, $decodedGJP) ? $account : self::ACCOUNT_UNAUTHORIZED;
 	}
 
 	public function checkFromRequest(Request $r)
 	{
 		return $this->check($r->request->get('accountID'), $r->request->get('gjp'));
+	}
+
+	public function checkPlain($account, $plainPassword)
+	{	
+		return password_verify($plainPassword, $account->getPassword());
 	}
 }

@@ -109,21 +109,9 @@ class Level
     private $lastUpdatedAt;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\Player", inversedBy="starVotedLevels")
-     * @ORM\JoinTable(name="level_star_votes")
-     */
-    private $starVotedBy;
-
-    /**
      * @ORM\Column(type="integer")
      */
     private $length;
-
-    /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\Player", inversedBy="demonVotedLevels")
-     * @ORM\JoinTable(name="level_demon_votes")
-     */
-    private $demonVotedBy;
 
     /**
      * @ORM\Column(type="boolean")
@@ -195,13 +183,29 @@ class Level
      */
     private $rewardsGivenAt;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelComment", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelComments;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelStarVote", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelStarVotes;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelDemonVote", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelDemonVotes;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
         $this->likedBy = new ArrayCollection();
         $this->dislikedBy = new ArrayCollection();
-        $this->demonVotedBy = new ArrayCollection();
-        $this->starVotedBy = new ArrayCollection();
+        $this->levelComments = new ArrayCollection();
+        $this->levelStarVotes = new ArrayCollection();
+        $this->levelDemonVotes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -462,32 +466,6 @@ class Level
         return $this;
     }
 
-    /**
-     * @return Collection|Player[]
-     */
-    public function getStarVotedBy(): Collection
-    {
-        return $this->starVotedBy;
-    }
-
-    public function addStarVotedBy(Player $starVotedBy): self
-    {
-        if (!$this->starVotedBy->contains($starVotedBy)) {
-            $this->starVotedBy[] = $starVotedBy;
-        }
-
-        return $this;
-    }
-
-    public function removeStarVotedBy(Player $starVotedBy): self
-    {
-        if ($this->starVotedBy->contains($starVotedBy)) {
-            $this->starVotedBy->removeElement($starVotedBy);
-        }
-
-        return $this;
-    }
-
     public function getLength(): ?int
     {
         return $this->length;
@@ -496,32 +474,6 @@ class Level
     public function setLength(int $length): self
     {
         $this->length = $length;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection|Player[]
-     */
-    public function getDemonVotedBy(): Collection
-    {
-        return $this->demonVotedBy;
-    }
-
-    public function addDemonVotedBy(Player $demonVotedBy): self
-    {
-        if (!$this->demonVotedBy->contains($demonVotedBy)) {
-            $this->demonVotedBy[] = $demonVotedBy;
-        }
-
-        return $this;
-    }
-
-    public function removeDemonVotedBy(Player $demonVotedBy): self
-    {
-        if ($this->demonVotedBy->contains($demonVotedBy)) {
-            $this->demonVotedBy->removeElement($demonVotedBy);
-        }
 
         return $this;
     }
@@ -622,30 +574,6 @@ class Level
         return $this;
     }
 
-    public function getVotedDifficulty(): ?int
-    {
-        return $this->votedDifficulty;
-    }
-
-    public function setVotedDifficulty(int $votedDifficulty): self
-    {
-        $this->votedDifficulty = $votedDifficulty;
-
-        return $this;
-    }
-
-    public function getVotedDemon(): ?int
-    {
-        return $this->votedDemon;
-    }
-
-    public function setVotedDemon(int $votedDemon): self
-    {
-        $this->votedDemon = $votedDemon;
-
-        return $this;
-    }
-
     public function getDifficulty(): ?int
     {
         return $this->difficulty;
@@ -714,6 +642,99 @@ class Level
     public function setRewardsGivenAt(?\DateTimeInterface $rewardsGivenAt): self
     {
         $this->rewardsGivenAt = $rewardsGivenAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelComment[]
+     */
+    public function getLevelComments(): Collection
+    {
+        return $this->levelComments;
+    }
+
+    public function addLevelComment(LevelComment $levelComment): self
+    {
+        if (!$this->levelComments->contains($levelComment)) {
+            $this->levelComments[] = $levelComment;
+            $levelComment->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelComment(LevelComment $levelComment): self
+    {
+        if ($this->levelComments->contains($levelComment)) {
+            $this->levelComments->removeElement($levelComment);
+            // set the owning side to null (unless already changed)
+            if ($levelComment->getLevel() === $this) {
+                $levelComment->setLevel(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelStarVote[]
+     */
+    public function getLevelStarVotes(): Collection
+    {
+        return $this->levelStarVotes;
+    }
+
+    public function addLevelStarVote(LevelStarVote $levelStarVote): self
+    {
+        if (!$this->levelStarVotes->contains($levelStarVote)) {
+            $this->levelStarVotes[] = $levelStarVote;
+            $levelStarVote->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelStarVote(LevelStarVote $levelStarVote): self
+    {
+        if ($this->levelStarVotes->contains($levelStarVote)) {
+            $this->levelStarVotes->removeElement($levelStarVote);
+            // set the owning side to null (unless already changed)
+            if ($levelStarVote->getLevel() === $this) {
+                $levelStarVote->setLevel(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelDemonVote[]
+     */
+    public function getLevelDemonVotes(): Collection
+    {
+        return $this->levelDemonVotes;
+    }
+
+    public function addLevelDemonVote(LevelDemonVote $levelDemonVote): self
+    {
+        if (!$this->levelDemonVotes->contains($levelDemonVote)) {
+            $this->levelDemonVotes[] = $levelDemonVote;
+            $levelDemonVote->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelDemonVote(LevelDemonVote $levelDemonVote): self
+    {
+        if ($this->levelDemonVotes->contains($levelDemonVote)) {
+            $this->levelDemonVotes->removeElement($levelDemonVote);
+            // set the owning side to null (unless already changed)
+            if ($levelDemonVote->getLevel() === $this) {
+                $levelDemonVote->setLevel(null);
+            }
+        }
 
         return $this;
     }

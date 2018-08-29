@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -53,9 +55,57 @@ class Account
 
     /**
      * @ORM\OneToOne(targetEntity="App\Entity\Player", inversedBy="account", cascade={"persist", "remove"})
-     * @ORM\JoinColumn(nullable=false)
      */
     private $player;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $friendRequestPolicy;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $privateMessagePolicy;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Account")
+     * @ORM\JoinTable(name="friends")
+     */
+    private $friends;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Account", mappedBy="blockedBy")
+     * @ORM\JoinTable(name="blocked_accounts")
+     */
+    private $blockedAccounts;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Account", inversedBy="blockedAccounts")
+     * @ORM\JoinTable(name="blocked_accounts")
+     */
+    private $blockedBy;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\PrivateMessage", mappedBy="author", orphanRemoval=true)
+     */
+    private $outgoingPrivateMessages;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\PrivateMessage", mappedBy="recipient", orphanRemoval=true)
+     */
+    private $incomingPrivateMessages;
+
+    public function __construct()
+    {
+        $this->friends = new ArrayCollection();
+        $this->incomingFriendRequests = new ArrayCollection();
+        $this->outgoingFriendRequests = new ArrayCollection();
+        $this->blockedBy = new ArrayCollection();
+        $this->blockedAccounts = new ArrayCollection();
+        $this->outgoingPrivateMessages = new ArrayCollection();
+        $this->incomingPrivateMessages = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -154,6 +204,226 @@ class Account
     public function setPlayer(Player $player): self
     {
         $this->player = $player;
+
+        return $this;
+    }
+
+    public function getFriendRequestPolicy(): ?int
+    {
+        return $this->friendRequestPolicy;
+    }
+
+    public function setFriendRequestPolicy(int $friendRequestPolicy): self
+    {
+        $this->friendRequestPolicy = $friendRequestPolicy;
+
+        return $this;
+    }
+
+    public function getPrivateMessagePolicy(): ?int
+    {
+        return $this->privateMessagePolicy;
+    }
+
+    public function setPrivateMessagePolicy(int $privateMessagePolicy): self
+    {
+        $this->privateMessagePolicy = $privateMessagePolicy;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Account[]
+     */
+    public function getFriends(): Collection
+    {
+        return $this->friends;
+    }
+
+    public function addFriend(Account $friend): self
+    {
+        if (!$this->friends->contains($friend)) {
+            $this->friends[] = $friend;
+        }
+
+        return $this;
+    }
+
+    public function removeFriend(Account $friend): self
+    {
+        if ($this->friends->contains($friend)) {
+            $this->friends->removeElement($friend);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Account[]
+     */
+    public function getIncomingFriendRequests(): Collection
+    {
+        return $this->incomingFriendRequests;
+    }
+
+    public function addIncomingFriendRequest(Account $incomingFriendRequest): self
+    {
+        if (!$this->incomingFriendRequests->contains($incomingFriendRequest)) {
+            $this->incomingFriendRequests[] = $incomingFriendRequest;
+            $incomingFriendRequest->addOutgoingFriendRequest($this);
+        }
+
+        return $this;
+    }
+
+    public function removeIncomingFriendRequest(Account $incomingFriendRequest): self
+    {
+        if ($this->incomingFriendRequests->contains($incomingFriendRequest)) {
+            $this->incomingFriendRequests->removeElement($incomingFriendRequest);
+            $incomingFriendRequest->removeOutgoingFriendRequest($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Account[]
+     */
+    public function getBlockedBy(): Collection
+    {
+        return $this->blockedBy;
+    }
+
+    public function addBlockedBy(Account $blockedBy): self
+    {
+        if (!$this->blockedBy->contains($blockedBy)) {
+            $this->blockedBy[] = $blockedBy;
+        }
+
+        return $this;
+    }
+
+    public function removeBlockedBy(Account $blockedBy): self
+    {
+        if ($this->blockedBy->contains($blockedBy)) {
+            $this->blockedBy->removeElement($blockedBy);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|PrivateMessage[]
+     */
+    public function getOutgoingPrivateMessages(): Collection
+    {
+        return $this->outgoingPrivateMessages;
+    }
+
+    public function addOutgoingPrivateMessage(PrivateMessage $outgoingPrivateMessage): self
+    {
+        if (!$this->outgoingPrivateMessages->contains($outgoingPrivateMessage)) {
+            $this->outgoingPrivateMessages[] = $outgoingPrivateMessage;
+            $outgoingPrivateMessage->setAuthor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOutgoingPrivateMessage(PrivateMessage $outgoingPrivateMessage): self
+    {
+        if ($this->outgoingPrivateMessages->contains($outgoingPrivateMessage)) {
+            $this->outgoingPrivateMessages->removeElement($outgoingPrivateMessage);
+            // set the owning side to null (unless already changed)
+            if ($outgoingPrivateMessage->getAuthor() === $this) {
+                $outgoingPrivateMessage->setAuthor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|PrivateMessage[]
+     */
+    public function getIncomingPrivateMessages(): Collection
+    {
+        return $this->incomingPrivateMessages;
+    }
+
+    public function addIncomingPrivateMessage(PrivateMessage $incomingPrivateMessage): self
+    {
+        if (!$this->incomingPrivateMessages->contains($incomingPrivateMessage)) {
+            $this->incomingPrivateMessages[] = $incomingPrivateMessage;
+            $incomingPrivateMessage->setRecipient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeIncomingPrivateMessage(PrivateMessage $incomingPrivateMessage): self
+    {
+        if ($this->incomingPrivateMessages->contains($incomingPrivateMessage)) {
+            $this->incomingPrivateMessages->removeElement($incomingPrivateMessage);
+            // set the owning side to null (unless already changed)
+            if ($incomingPrivateMessage->getRecipient() === $this) {
+                $incomingPrivateMessage->setRecipient(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Account[]
+     */
+    public function getOutgoingFriendRequests(): Collection
+    {
+        return $this->outgoingFriendRequests;
+    }
+
+    public function addOutgoingFriendRequest(Account $outgoingFriendRequest): self
+    {
+        if (!$this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
+            $this->outgoingFriendRequests[] = $outgoingFriendRequest;
+        }
+
+        return $this;
+    }
+
+    public function removeOutgoingFriendRequest(Account $outgoingFriendRequest): self
+    {
+        if ($this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
+            $this->outgoingFriendRequests->removeElement($outgoingFriendRequest);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Account[]
+     */
+    public function getBlockedAccounts(): Collection
+    {
+        return $this->blockedAccounts;
+    }
+
+    public function addBlockedAccount(Account $blockedAccount): self
+    {
+        if (!$this->blockedAccounts->contains($blockedAccount)) {
+            $this->blockedAccounts[] = $blockedAccount;
+            $blockedAccount->addBlockedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBlockedAccount(Account $blockedAccount): self
+    {
+        if ($this->blockedAccounts->contains($blockedAccount)) {
+            $this->blockedAccounts->removeElement($blockedAccount);
+            $blockedAccount->removeBlockedBy($this);
+        }
 
         return $this;
     }
