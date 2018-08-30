@@ -14,6 +14,7 @@ use App\Services\Base64URL;
 use App\Services\XORCipher;
 use App\Services\TimeFormatter;
 use App\Entity\Level;
+use App\Entity\LevelComment;
 
 class LevelsController extends AbstractController
 {
@@ -259,6 +260,21 @@ class LevelsController extends AbstractController
                 }
                 
                 $em->persist($level);
+                break;
+            case 2:
+                $comment = $em->getRepository(LevelComment::class)->find($r->request->get('itemID'));
+                if (!$comment)
+                    return new Response('-1');
+
+                if ($r->request->get('like')) {
+                    $player->addLikedLevelComment($comment);
+                    $player->removeDislikedLevelComment($comment);
+                } else {
+                    $player->addDislikedLevelComment($comment);
+                    $player->removeLikedLevelComment($comment);
+                }
+                
+                $em->persist($comment);
                 break;
             default:
                 return new Response('-1');

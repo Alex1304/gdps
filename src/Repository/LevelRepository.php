@@ -102,7 +102,7 @@ class LevelRepository extends ServiceEntityRepository
         if (!$song && $customSong)
             $qb->andWhere('l.customSongID > 0');
 
-        if ($completedLevels) {
+        if ($completedLevels && preg_match('#^\(([0-9]+,)*[0-9]+\)$#', $completedLevels)) {
             if ($uncompleted)
                 $qb->andWhere($qb->expr()->notIn('l.id', explode(',', substr($completedLevels, 1, strlen($completedLevels) - 1))));
             if ($onlyCompleted)
