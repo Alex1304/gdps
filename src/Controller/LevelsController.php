@@ -15,6 +15,7 @@ use App\Services\XORCipher;
 use App\Services\TimeFormatter;
 use App\Entity\Level;
 use App\Entity\LevelComment;
+use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
 
 class LevelsController extends AbstractController
@@ -271,6 +272,19 @@ class LevelsController extends AbstractController
                 } else {
                     $player->addDislikedLevelComment($comment);
                     $player->removeLikedLevelComment($comment);
+                }
+                break;
+            case 3:
+                $comment = $em->getRepository(AccountComment::class)->find($r->request->get('itemID'));
+                if (!$comment)
+                    return new Response('-1');
+
+                if ($r->request->get('like')) {
+                    $player->addLikedAccountComment($comment);
+                    $player->removeDislikedAccountComment($comment);
+                } else {
+                    $player->addDislikedAccountComment($comment);
+                    $player->removeLikedAccountComment($comment);
                 }
                 break;
             default:

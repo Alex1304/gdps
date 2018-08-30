@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\PlayerManager;
 use App\Services\TimeFormatter;
 use App\Entity\LevelComment;
+use App\Entity\AccountComment;
 use App\Entity\Level;
 
 class CommentController extends AbstractController
@@ -17,7 +18,7 @@ class CommentController extends AbstractController
     /**
      * @Route("/uploadGJComment21.php", name="upload_level_comment")
      */
-    public function postLevelComment(Request $r, PlayerManager $pm): Response
+    public function uploadLevelComment(Request $r, PlayerManager $pm): Response
     {
     	$em = $this->getDoctrine()->getManager();
     	$player = $pm->getFromRequest($r);
@@ -46,7 +47,7 @@ class CommentController extends AbstractController
     /**
      * @Route("/getGJComments21.php", name="get_level_comments")
      */
-    public function getLevelComments(Request $r, PlayerManager $pm, TimeFormatter $tf)
+    public function getLevelComments(Request $r, TimeFormatter $tf): Response
     {
     	$em = $this->getDoctrine()->getManager();
 
@@ -67,7 +68,7 @@ class CommentController extends AbstractController
     /**
      * @Route("/deleteGJComment20.php", name="delete_level_comment")
      */
-    public function deleteLevelComment(Request $r, PlayerManager $pm)
+    public function deleteLevelComment(Request $r, PlayerManager $pm): Response
     {
     	$em = $this->getDoctrine()->getManager();
     	$player = $pm->getFromRequest($r);
@@ -75,6 +76,65 @@ class CommentController extends AbstractController
     	$comment = $em->getRepository(LevelComment::class)->find($r->request->get('commentID'));
 
     	if ($comment->getAuthor()->getId() !== $player->getId() && $comment->getLevel()->getCreator()->getId() !== $player->getId())
+    		return new Response('-1');
+
+    	$em->remove($comment);
+    	$em->flush();
+
+    	return new Response('1');
+    }
+
+    /**
+     * @Route("/uploadGJAccComment20.php", name="upload_account_comment")
+     */
+    public function uploadAccountComment(Request $r, PlayerManager $pm): Response
+    {
+    	$em = $this->getDoctrine()->getManager();
+    	$player = $pm->getFromRequest($r);
+
+    	if (!$player || !$player->getAccount())
+    		return new Response('-1');
+
+    	$comment = new AccountComment();
+    	$comment->setPostedAt(new \DateTime());
+    	$comment->setContent($r->request->get('comment'));
+    	$comment->setAuthor($player->getAccount());
+
+    	$em->persist($comment);
+    	$em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/getGJAccountComments20.php", name="get_account_comments")
+     */
+    public function getAccountComments(Request $r, TimeFormatter $tf): Response
+    {
+    	$em = $this->getDoctrine()->getManager();
+
+    	$comments = $em->getRepository(AccountComment::class)->commentsForAccount($r->request->get('accountID'), $r->request->get('page'));
+
+    	return $this->render('comment/get_account_comments.html.twig', [
+    		'comments' => $comments['result'],
+    		'total' => $comments['total'],
+    		'timeFormatter' => $tf,
+    		'page' => $r->request->get('page'),
+    		'count' => count($comments['result']),
+    	]);
+    }
+
+    /**
+     * @Route("/deleteGJAccComment20.php", name="delete_account_comment")
+     */
+    public function deleteAccountComment(Request $r, PlayerManager $pm): Response
+    {
+    	$em = $this->getDoctrine()->getManager();
+    	$player = $pm->getFromRequest($r);
+
+    	$comment = $em->getRepository(AccountComment::class)->find($r->request->get('commentID'));
+
+    	if ($comment->getAuthor()->getId() !== $player->getAccount()->getId())
     		return new Response('-1');
 
     	$em->remove($comment);

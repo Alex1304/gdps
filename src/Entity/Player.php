@@ -184,6 +184,16 @@ class Player
      */
     private $levelDemonVotes;
 
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\AccountComment", mappedBy="likedBy")
+     */
+    private $likedAccountComments;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\AccountComment", mappedBy="dislikedBy")
+     */
+    private $dislikedAccountComments;
+
     public function __construct()
     {
         $this->levels = new ArrayCollection();
@@ -195,6 +205,8 @@ class Player
         $this->dislikedLevelComments = new ArrayCollection();
         $this->levelStarVotes = new ArrayCollection();
         $this->levelDemonVotes = new ArrayCollection();
+        $this->likedAccountComments = new ArrayCollection();
+        $this->dislikedAccountComments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -755,6 +767,62 @@ class Player
             if ($levelDemonVote->getPlayer() === $this) {
                 $levelDemonVote->setPlayer(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|AccountComment[]
+     */
+    public function getLikedAccountComments(): Collection
+    {
+        return $this->likedAccountComments;
+    }
+
+    public function addLikedAccountComment(AccountComment $likedAccountComment): self
+    {
+        if (!$this->likedAccountComments->contains($likedAccountComment)) {
+            $this->likedAccountComments[] = $likedAccountComment;
+            $likedAccountComment->addLikedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLikedAccountComment(AccountComment $likedAccountComment): self
+    {
+        if ($this->likedAccountComments->contains($likedAccountComment)) {
+            $this->likedAccountComments->removeElement($likedAccountComment);
+            $likedAccountComment->removeLikedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|AccountComment[]
+     */
+    public function getDislikedAccountComments(): Collection
+    {
+        return $this->dislikedAccountComments;
+    }
+
+    public function addDislikedAccountComment(AccountComment $dislikedAccountComment): self
+    {
+        if (!$this->dislikedAccountComments->contains($dislikedAccountComment)) {
+            $this->dislikedAccountComments[] = $dislikedAccountComment;
+            $dislikedAccountComment->addDislikedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDislikedAccountComment(AccountComment $dislikedAccountComment): self
+    {
+        if ($this->dislikedAccountComments->contains($dislikedAccountComment)) {
+            $this->dislikedAccountComments->removeElement($dislikedAccountComment);
+            $dislikedAccountComment->removeDislikedBy($this);
         }
 
         return $this;

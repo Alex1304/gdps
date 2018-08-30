@@ -96,6 +96,11 @@ class Account
      */
     private $incomingPrivateMessages;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\AccountComment", mappedBy="author", orphanRemoval=true)
+     */
+    private $accountComments;
+
     public function __construct()
     {
         $this->friends = new ArrayCollection();
@@ -105,6 +110,7 @@ class Account
         $this->blockedAccounts = new ArrayCollection();
         $this->outgoingPrivateMessages = new ArrayCollection();
         $this->incomingPrivateMessages = new ArrayCollection();
+        $this->accountComments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -423,6 +429,37 @@ class Account
         if ($this->blockedAccounts->contains($blockedAccount)) {
             $this->blockedAccounts->removeElement($blockedAccount);
             $blockedAccount->removeBlockedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|AccountComment[]
+     */
+    public function getAccountComments(): Collection
+    {
+        return $this->accountComments;
+    }
+
+    public function addAccountComment(AccountComment $accountComment): self
+    {
+        if (!$this->accountComments->contains($accountComment)) {
+            $this->accountComments[] = $accountComment;
+            $accountComment->setAuthor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAccountComment(AccountComment $accountComment): self
+    {
+        if ($this->accountComments->contains($accountComment)) {
+            $this->accountComments->removeElement($accountComment);
+            // set the owning side to null (unless already changed)
+            if ($accountComment->getAuthor() === $this) {
+                $accountComment->setAuthor(null);
+            }
         }
 
         return $this;

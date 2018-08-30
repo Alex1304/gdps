@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% for comment in comments %}
+		{% set likes = (comment.likedBy|length - comment.dislikedBy|length) %}
+		2~{{ comment.content }}~
+		4~{{ likes }}~
+		9~{{ timeFormatter.format(comment.postedAt) }}~
+		6~{{ comment.id }}
+		{% if not loop.last %}|{% endif %}
+	{% endfor %}
+	#
+	{{ total }}:{{ page }}:{{ count }}
+{% endblock %}

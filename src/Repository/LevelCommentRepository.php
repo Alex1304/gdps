@@ -62,6 +62,6 @@ class LevelCommentRepository extends ServiceEntityRepository
         if ($top)
             $qb->orderBy('likeCount', 'DESC');
 
-        return $this->getPaginatedResult($qb, $page);
+        return $this->getPaginatedResult($qb, $page, $count);
     }
 }
