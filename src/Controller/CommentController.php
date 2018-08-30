@@ -63,4 +63,23 @@ class CommentController extends AbstractController
     		'count' => count($comments['result']),
     	]);
     }
+
+    /**
+     * @Route("/deleteGJComment20.php", name="delete_level_comment")
+     */
+    public function deleteLevelComment(Request $r, PlayerManager $pm)
+    {
+    	$em = $this->getDoctrine()->getManager();
+    	$player = $pm->getFromRequest($r);
+
+    	$comment = $em->getRepository(LevelComment::class)->find($r->request->get('commentID'));
+
+    	if ($comment->getAuthor()->getId() !== $player->getId() && $comment->getLevel()->getCreator()->getId() !== $player->getId())
+    		return new Response('-1');
+
+    	$em->remove($comment);
+    	$em->flush();
+
+    	return new Response('1');
+    }
 }

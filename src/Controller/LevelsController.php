@@ -15,6 +15,7 @@ use App\Services\XORCipher;
 use App\Services\TimeFormatter;
 use App\Entity\Level;
 use App\Entity\LevelComment;
+use App\Entity\LevelStarVote;
 
 class LevelsController extends AbstractController
 {
@@ -258,8 +259,6 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevel($level);
                     $player->removeLikedLevel($level);
                 }
-                
-                $em->persist($level);
                 break;
             case 2:
                 $comment = $em->getRepository(LevelComment::class)->find($r->request->get('itemID'));
@@ -273,8 +272,6 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevelComment($comment);
                     $player->removeLikedLevelComment($comment);
                 }
-                
-                $em->persist($comment);
                 break;
             default:
                 return new Response('-1');
@@ -303,6 +300,59 @@ class LevelsController extends AbstractController
             return new Response('-1');
 
         $player->removeLevel($level);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/rateGJStars211.php", name="vote_level_stars")
+     */
+    public function voteLevelStars(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player)
+            return new Response('-1');
+
+        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        if (!$level)
+            return new Response('-1');
+
+        $vote = $em->getRepository(LevelStarVote::class)->findPlayerVoteForLevel($player->getId(), $level->getId());
+
+        if (!$vote)
+            $vote = new LevelStarVote();
+
+        $vote->setPlayer($player);
+        $vote->setLevel($level);
+        $vote->setStarValue($r->request->get('stars'));
+
+        $em->persist($vote);
+        $em->persist($player);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/updateGJDesc20.php", name="update_level_desc")
+     */
+    public function updateLevelDesc(Request $r, PlayerManager $pm)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player)
+            return new Response('-1');
+
+        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+
+        if (!$level || $level->getCreator()->getId() !== $player->getId())
+            return new Response('-1');
+
+        $level->setDescription($r->request->get('levelDesc'));
         $em->flush();
 
         return new Response('1');

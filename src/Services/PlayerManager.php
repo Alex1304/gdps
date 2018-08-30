@@ -22,29 +22,33 @@ class PlayerManager
 	}
 
 	/**
+	 * - First, it will attempt to authenticate using a provided accountID/GJP
+	 * and return the associated player if found, null otherwise
 	 * - If uuid is provided, then the player with the given ID is returned, or null if not found
 	 * - If uuid isn't provided or is equal to zero, but udid is provided, then the first unregistered
-	 * player with the matching udid is returned. If non is found, a new player is created and returned.
-	 * - If neither uuid nor udid is provided, then it will attempt to authenticate using a provided accountID/GJP
-	 * and return the associated player if found, null otherwise
+	 * player with the matching udid is returned. If none is found, a new player is created and returned.
+	 * - Otherwise it returns null
 	 */
     public function getFromRequest(Request $r): ?Player
     {
         $player = null;
+        $account = $this->gdac->checkFromRequest($r);
 
-        if (!empty($r->request->get('uuid')) && (int) $r->request->get('uuid') > 0)
+        if ($account === GDAuthChecker::ACCOUNT_UNAUTHORIZED)
+        	return null;
+
+        if (!is_numeric($account))
+            $player = $account->getPlayer();
+        elseif ($r->request->get('uuid'))
             $player = $this->em->getRepository(Player::class)->find($r->request->get('uuid'));
-        elseif (!empty($r->request->get('udid'))) {
+        elseif ($r->request->get('udid')) {
             $player = $this->em->getRepository(Player::class)->findUnregisteredByDeviceID($r->request->get('udid'));
             if ($player === null) {
                 $player = new Player();
                 $player->setDeviceID($r->request->get('udid'));
             }
-        } else {
-            $account = $this->gdac->checkFromRequest($r);
-            if (!is_numeric($account))
-                $player = $account->getPlayer();
         }
+
 
         return $player;
     }

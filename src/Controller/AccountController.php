@@ -68,18 +68,7 @@ class AccountController extends AbstractController
             return new Response('-1');
 
         // Finding an unregistered player with same deviceID as the person who attempts to login
-        $players = $em->getRepository(Player::class)->findBy([
-            'deviceID' => $r->request->get('udid'),
-        ]);
-
-        $player = null;
-
-        foreach ($players as $p) {
-            if (!$p->getAccount()) {
-                $player = $p;
-                break;
-            }
-        }
+        $player = $em->getRepository(Player::class)->findUnregisteredByDeviceID($r->request->get('udid'));
 
         if (!$account->getPlayer()) {
             if (!$player) {

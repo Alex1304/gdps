@@ -19,32 +19,17 @@ class LevelStarVoteRepository extends ServiceEntityRepository
         parent::__construct($registry, LevelStarVote::class);
     }
 
-//    /**
-//     * @return LevelStarVote[] Returns an array of LevelStarVote objects
-//     */
-    /*
-    public function findByExampleField($value)
+    public function findPlayerVoteForLevel($playerID, $levelID): ?LevelStarVote
     {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('l.id', 'ASC')
-            ->setMaxResults(10)
+        $results = $this->createQueryBuilder('lsv')
+            ->join('lsv.player', 'p')
+            ->join('lsv.level', 'l')
+            ->where('p.id = :pid AND l.id = :lid')
+            ->setParameter('pid', $playerID)
+            ->setParameter('lid', $levelID)
             ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+            ->getResult();
 
-    /*
-    public function findOneBySomeField($value): ?LevelStarVote
-    {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return !count($results) ? null : $results[0];
     }
-    */
 }
