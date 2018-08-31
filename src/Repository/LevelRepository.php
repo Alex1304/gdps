@@ -259,6 +259,23 @@ class LevelRepository extends ServiceEntityRepository
     }
 
     /**
+     * Returns the most recently uploaded levels made by th followed players
+     */
+    public function levelsByFollowed($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels, $followed)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->orderBy('l.uploadedAt', 'DESC');
+
+        $qb->join('l.creator', 'c')
+            ->join('c.account', 'a')
+            ->andWhere($qb->expr()->in('a.id', explode(',', $followed)));
+
+        $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
+        
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
      * Returns the levels that should go in the Hall of Fame section, sorted by their ID
      */
     public function hallOfFame(int $page)

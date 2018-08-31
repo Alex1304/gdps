@@ -149,10 +149,10 @@ class LevelsController extends AbstractController
             case 11:
                 $query = $em->getRepository(Level::class)->awardedLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
                 break;
-            /*case 12:
-
+            case 12:
+                $query = $em->getRepository(Level::class)->levelsByFollowed($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'), $r->request->get('followed'));
                 break;
-            case 13:
+            /*case 13:
 
                 break;*/
             case 16:
