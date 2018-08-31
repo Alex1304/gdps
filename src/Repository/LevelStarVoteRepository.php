@@ -14,6 +14,8 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class LevelStarVoteRepository extends ServiceEntityRepository
 {
+    const MIN_VOTES_REQUIRED = 20;
+
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, LevelStarVote::class);
@@ -31,5 +33,18 @@ class LevelStarVoteRepository extends ServiceEntityRepository
             ->getResult();
 
         return !count($results) ? null : $results[0];
+    }
+
+    public function averageVotesForLevel($levelID)
+    {
+        return $this->createQueryBuilder('lsv')
+            ->select('AVG(lsv.starValue) AS avgVotes, COUNT(lsv.id) AS HIDDEN totalVotes')
+            ->join('lsv.level', 'l')
+            ->where('l.id = :id')
+            ->setParameter('id', $levelID)
+            ->groupBy('l.id')
+            ->having('totalVotes >= ' . self::MIN_VOTES_REQUIRED) // No need to use query parameters because it isn't user input
+            ->getQuery()
+            ->getScalarResult();
     }
 }

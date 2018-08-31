@@ -24,14 +24,11 @@ class AccountCommentRepository extends ServiceEntityRepository
      */
     private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        $total = count($qb->getQuery()->getResult());
-
-        $qb->setFirstResult($page * $count);
-        $qb->setMaxResults($count);
+        $result = $qb->getQuery()->getResult();
 
         return [
-            'result' => $qb->getQuery()->getResult(),
-            'total' => $total,
+            'result' => array_slice($result, $page * $count, $count),
+            'total' => count($result),
         ];
     }
 

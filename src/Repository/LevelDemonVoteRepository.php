@@ -14,37 +14,37 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class LevelDemonVoteRepository extends ServiceEntityRepository
 {
+    const MIN_VOTES_REQUIRED = 50;
+
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, LevelDemonVote::class);
     }
 
-//    /**
-//     * @return LevelDemonVote[] Returns an array of LevelDemonVote objects
-//     */
-    /*
-    public function findByExampleField($value)
+    public function findPlayerVoteForLevel($playerID, $levelID): ?LevelDemonVote
     {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('l.id', 'ASC')
-            ->setMaxResults(10)
+        $results = $this->createQueryBuilder('lsv')
+            ->join('lsv.player', 'p')
+            ->join('lsv.level', 'l')
+            ->where('p.id = :pid AND l.id = :lid')
+            ->setParameter('pid', $playerID)
+            ->setParameter('lid', $levelID)
             ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+            ->getResult();
 
-    /*
-    public function findOneBySomeField($value): ?LevelDemonVote
-    {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return !count($results) ? null : $results[0];
     }
-    */
+
+    public function averageVotesForLevel($levelID)
+    {
+        return $this->createQueryBuilder('ldv')
+            ->select('AVG(ldv.demonValue) AS avgVotes, COUNT(ldv.id) AS HIDDEN totalVotes')
+            ->join('ldv.level', 'l')
+            ->where('l.id = :id')
+            ->setParameter('id', $levelID)
+            ->groupBy('l.id')
+            ->having('totalVotes >= ' . self::MIN_VOTES_REQUIRED) // No need to use query parameters because it isn't user input
+            ->getQuery()
+            ->getScalarResult();
+    }
 }

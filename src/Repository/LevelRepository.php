@@ -38,16 +38,13 @@ class LevelRepository extends ServiceEntityRepository
     /**
      * Limits results of the query to show the desired page
      */
-    private function getPaginatedResult(&$qb, $page)
+    private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        $total = count($qb->getQuery()->getResult());
-
-        $qb->setFirstResult($page * 10);
-        $qb->setMaxResults(10);
+        $result = $qb->getQuery()->getResult();
 
         return [
-            'result' => $qb->getQuery()->getResult(),
-            'total' => $total,
+            'result' => array_slice($result, $page * $count, $count),
+            'total' => count($result),
         ];
     }
 

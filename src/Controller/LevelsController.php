@@ -13,10 +13,12 @@ use App\Services\HashGenerator;
 use App\Services\Base64URL;
 use App\Services\XORCipher;
 use App\Services\TimeFormatter;
+use App\Services\DifficultyCalculator;
 use App\Entity\Level;
 use App\Entity\LevelComment;
 use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
+use App\Entity\LevelDemonVote;
 
 class LevelsController extends AbstractController
 {
@@ -322,7 +324,7 @@ class LevelsController extends AbstractController
     /**
      * @Route("/rateGJStars211.php", name="vote_level_stars")
      */
-    public function voteLevelStars(Request $r, PlayerManager $pm): Response
+    public function voteLevelStars(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -331,7 +333,7 @@ class LevelsController extends AbstractController
             return new Response('-1');
 
         $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
-        if (!$level)
+        if (!$level || $level->getStars() > 0)
             return new Response('-1');
 
         $vote = $em->getRepository(LevelStarVote::class)->findPlayerVoteForLevel($player->getId(), $level->getId());
@@ -346,6 +348,41 @@ class LevelsController extends AbstractController
         $em->persist($vote);
         $em->persist($player);
         $em->flush();
+
+        $dc->updateDifficulty($level);
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/rateGJDemon21.php", name="vote_level_demon")
+     */
+    public function voteLevelDemon(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player)
+            return new Response('-1');
+
+        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        if (!$level || !$level->getIsDemon())
+            return new Response('-1');
+
+        $vote = $em->getRepository(LevelDemonVote::class)->findPlayerVoteForLevel($player->getId(), $level->getId());
+
+        if (!$vote)
+            $vote = new LevelDemonVote();
+
+        $vote->setPlayer($player);
+        $vote->setLevel($level);
+        $vote->setDemonValue($r->request->get('rating'));
+
+        $em->persist($vote);
+        $em->persist($player);
+        $em->flush();
+
+        $dc->updateDemonDifficulty($level);
 
         return new Response('1');
     }

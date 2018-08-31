@@ -2,6 +2,19 @@
 
 {% block content %}
 	{% for level in levels %}
+		{% set demonDiff %}
+			{% if level.demonDifficulty == 1 %}
+				3
+			{% elseif level.demonDifficulty == 2 %}
+				4
+			{% elseif level.demonDifficulty == 4 %}
+				5
+			{% elseif level.demonDifficulty == 5 %}
+				6
+			{% else %}
+				0
+			{% endif %}
+		{% endset %}
 		1:{{ level.id }}:
 		2:{{ level.name }}:
 		5:{{ level.version }}:
@@ -13,7 +26,7 @@
 		13:{{ level.gameVersion }}:
 		14:{{ level.likedBy|length - level.dislikedBy|length }}:
 		17:{% if level.isDemon %}1{% else %}0{% endif %}:
-		43:{{ level.demonDifficulty }}:
+		43:{{ demonDiff }}:
 		25:{% if level.isAuto %}1{% else %}0{% endif %}:
 		18:{{ level.stars }}:
 		19:{{ level.featureScore }}:
