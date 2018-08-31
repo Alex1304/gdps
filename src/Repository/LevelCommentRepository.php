@@ -52,9 +52,25 @@ class LevelCommentRepository extends ServiceEntityRepository
     public function commentsForLevel(int $levelID, int $page, bool $top, ?int $count)
     {
         $qb = $this->queryBuilderTemplate()
-            ->join('c.level', 'level')
-            ->where('level.id = :id')
+            ->join('c.level', 'l')
+            ->where('l.id = :id')
             ->setParameter('id', $levelID);
+
+        if ($top)
+            $qb->orderBy('likeCount', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page, $count);
+    }
+
+    /**
+     * Returns the comments made by the given author. Sort mode is also given in parameter
+     */
+    public function commentsByAuthor(int $authorID, int $page, bool $top, ?int $count)
+    {
+        $qb = $this->queryBuilderTemplate()
+            ->join('c.author', 'a')
+            ->where('a.id = :id')
+            ->setParameter('id', $authorID);
 
         if ($top)
             $qb->orderBy('likeCount', 'DESC');

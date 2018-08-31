@@ -3,6 +3,9 @@
 {% block content %}
 	{% for comment in comments %}
 		{% set likes = (comment.likedBy|length - comment.dislikedBy|length) %}
+		{% if showLevelID %}
+			1~{{ comment.level.id }}~
+		{% endif %}
 		2~{{ comment.content }}~
 		3~{{ comment.author.id }}~
 		4~{{ likes }}~

@@ -57,6 +57,29 @@ class CommentController extends AbstractController
     		return new Response('-1');
 
     	return $this->render('comment/get_level_comments.html.twig', [
+    		'showLevelID' => false,
+    		'comments' => $comments['result'],
+    		'total' => $comments['total'],
+    		'timeFormatter' => $tf,
+    		'page' => $r->request->get('page'),
+    		'count' => count($comments['result']),
+    	]);
+    }
+
+    /**
+     * @Route("/getGJCommentHistory.php", name="get_comment_history")
+     */
+    public function getCommentHistory(Request $r, TimeFormatter $tf): Response
+    {
+    	$em = $this->getDoctrine()->getManager();
+
+    	$comments = $em->getRepository(LevelComment::class)->commentsByAuthor($r->request->get('userID'), $r->request->get('page'), $r->request->get('mode'), $r->request->get('count'));
+
+    	if (!count($comments['result']))
+    		return new Response('-1');
+
+    	return $this->render('comment/get_level_comments.html.twig', [
+    		'showLevelID' => true,
     		'comments' => $comments['result'],
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
