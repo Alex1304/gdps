@@ -131,4 +131,29 @@ class AccountController extends AbstractController
             'self' => $player->getAccount() ? $player->getAccount()->getId() === $target->getId() : false,
         ]);
     }
+
+    /**
+     * @Route("/updateGJAccSettings20.php", name="update_account_settings")
+     */
+    public function updateAccountSettings(Request $r, PlayerManager $pm)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $acc = $player->getAccount();
+
+        $acc->setFriendRequestPolicy($r->request->get('frS'));
+        $acc->setPrivateMessagePolicy($r->request->get('mS'));
+        $acc->setCommentHistoryPolicy($r->request->get('cS') ?? 0);
+        $acc->setYoutube($r->request->get('yt'));
+        $acc->setTwitter($r->request->get('twitter'));
+        $acc->setTwitch($r->request->get('twitch'));
+
+        $em->flush();
+
+        return new Response('1');
+    }
 }

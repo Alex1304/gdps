@@ -69,6 +69,11 @@ class Account
     private $privateMessagePolicy;
 
     /**
+     * @ORM\Column(type="integer")
+     */
+    private $commentHistoryPolicy;
+
+    /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Account")
      * @ORM\JoinTable(name="friends")
      */
@@ -461,6 +466,18 @@ class Account
                 $accountComment->setAuthor(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCommentHistoryPolicy(): ?int
+    {
+        return $this->commentHistoryPolicy;
+    }
+
+    public function setCommentHistoryPolicy(int $commentHistoryPolicy): self
+    {
+        $this->commentHistoryPolicy = $commentHistoryPolicy;
 
         return $this;
     }
