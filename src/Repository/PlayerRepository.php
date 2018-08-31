@@ -45,19 +45,10 @@ class PlayerRepository extends ServiceEntityRepository
         return $player;
     }
 
-    public function topLeaderboard(int $count)
-    {
-        return $this->createQueryBuilder('p')
-            ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
-            ->setMaxResults($count)
-            ->getQuery()
-            ->getResult();
-    }
-
-    public function relativeLeaderboard(Player $player, int $count)
+    public function globalRank(Player $player)
     {
         $qb = $this->createQueryBuilder('p');
-        $rank = $qb
+        return $qb
             ->select('COUNT(p.id)')
             ->where($qb->expr()->orX(
                 $qb->expr()->gt('p.stars', ':pstars'),
@@ -70,6 +61,20 @@ class PlayerRepository extends ServiceEntityRepository
             ->setParameter('ptime', $player->getStatsLastUpdatedAt())
             ->getQuery()
             ->getSingleScalarResult() + 1;
+    }
+
+    public function topLeaderboard(int $count)
+    {
+        return $this->createQueryBuilder('p')
+            ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
+            ->setMaxResults($count)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function relativeLeaderboard(Player $player, int $count)
+    {
+        $rank = $this->globalRank($player);
 
         return [
             'result' => $this->createQueryBuilder('p')

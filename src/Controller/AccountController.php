@@ -127,6 +127,7 @@ class AccountController extends AbstractController
 
         return $this->render('account/get_user_info.html.twig', [
             'account' => $target,
+            'globalRank' => $em->getRepository(Player::class)->globalRank($target->getPlayer()),
             'self' => $player->getAccount() ? $player->getAccount()->getId() === $target->getId() : false,
         ]);
     }
