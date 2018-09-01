@@ -9,15 +9,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 use App\Services\PlayerManager;
 use App\Services\GDAuthChecker;
+use App\Services\TimeFormatter;
 use App\Entity\Account;
 use App\Entity\Player;
+use App\Entity\FriendRequest;
+use App\Entity\Friend;
 
 class AccountController extends AbstractController
 {
     /**
      * @Route("/accounts/registerGJAccount.php", name="account_register")
      */
-    public function accountRegister(Request $r)
+    public function accountRegister(Request $r): Response
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -56,7 +59,7 @@ class AccountController extends AbstractController
     /**
      * @Route("/accounts/loginGJAccount.php", name="account_login")
      */
-    public function accountLogin(Request $r, GDAuthChecker $gdac)
+    public function accountLogin(Request $r, GDAuthChecker $gdac): Response
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -115,7 +118,7 @@ class AccountController extends AbstractController
     /**
      * @Route("/getGJUserInfo20.php", name="get_user_info")
      */
-    public function getUserInfo(Request $r, PlayerManager $pm)
+    public function getUserInfo(Request $r, PlayerManager $pm): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -135,7 +138,7 @@ class AccountController extends AbstractController
     /**
      * @Route("/updateGJAccSettings20.php", name="update_account_settings")
      */
-    public function updateAccountSettings(Request $r, PlayerManager $pm)
+    public function updateAccountSettings(Request $r, PlayerManager $pm): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -155,5 +158,188 @@ class AccountController extends AbstractController
         $em->flush();
 
         return new Response('1');
+    }
+
+    /**
+     * @Route("/uploadFriendRequest20.php", name="send_friend_request")
+     */
+    public function sendFriendRequest(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $acc = $player->getAccount();
+        $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
+
+        if (!$target)
+            return new Response('-1');
+
+        $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
+
+        if (!$fr)
+            $fr = new FriendRequest();
+
+        $fr->setSender($acc);
+        $fr->setRecipient($target);
+        $fr->setMessage($r->request->get('comment'));
+        $fr->setMadeAt(new \DateTime());
+        $fr->setIsUnread(true);
+
+        $em->persist($fr);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/deleteGJFriendRequests20.php", name="delete_friend_request")
+     */
+    public function deleteFriendRequest(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $acc = $player->getAccount();
+        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+
+        if (!$target)
+            return new Response('-1');
+
+        if ($r->request->get('isSender'))
+            $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
+        else
+            $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId());
+
+        if (!$fr)
+            return new Response('-1');
+
+        $em->remove($fr);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/getGJFriendRequests20.php", name="get_friend_requests")
+     */
+    public function getFriendRequests(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        if ($r->request->get('getSent'))
+            $frs = $em->getRepository(FriendRequest::class)->outgoingFriendRequestsForAccount($player->getAccount()->getId(), $r->request->get('page'));
+        else
+            $frs = $em->getRepository(FriendRequest::class)->incomingFriendRequestsForAccount($player->getAccount()->getId(), $r->request->get('page'));
+
+        if (!$frs['total'])
+            return new Response('-2');
+
+        return $this->render('account/get_friend_requests.html.twig', [
+            'frs' => $frs['result'],
+            'total' => $frs['total'],
+            'page' => $r->request->get('page'),
+            'count' => count($frs['result']),
+            'timeFormatter' => $tf,
+            'incoming' => (bool) $r->request->get('getSent'),
+        ]);
+    }
+
+    /**
+     * @Route("/readGJFriendRequest20.php", name="read_friend_request")
+     */
+    public function readFriendRequest(Request $r, PlayerManager $pm)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $fr = $em->getRepository(FriendRequest::class)->find($r->request->get('requestID'));
+
+        if (!$fr)
+            return new Response('-1');
+
+        $fr->setIsUnread(false);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+
+    /**
+     * @Route("/acceptGJFriendRequest20.php", name="accept_friend_request")
+     */
+    public function acceptFriendRequest(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $fr = $em->getRepository(FriendRequest::class)->find($r->request->get('requestID'));
+
+        if (!$fr)
+            return new Response('-1');
+
+        $friend = $em->getRepository(Friend::class)->friendAB($fr->getSender(), $fr->getRecipient());
+
+        if ($friend)
+            return new Response('-1');
+
+        $friend = new Friend();
+        $friend->setA($fr->getSender());
+        $friend->setB($fr->getRecipient());
+        $friend->setIsNewForA(true);
+        $friend->setIsNewForB(true);
+
+        $em->persist($friend);
+        $em->remove($fr);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/getGJUserList20.php", name="get_friends")
+     */
+    public function getFriends(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+        $friends2 = array_slice($friends, 0, 9999);
+
+        if (!count($friends))
+            return new Response('-2');
+
+        foreach ($friends as $friend) {
+            if ($player->getAccount()->getId() === $friend->getA()->getId())
+                $friend->setIsNewForA(false);
+            else
+                $friend->setIsNewForB(false);
+        }
+
+        $em->flush();
+
+        return $this->render('account/get_friends.html.twig', [
+            'friends' => $friends2,
+            'me' => $player->getAccount()->getId(),
+        ]);
     }
 }

@@ -74,12 +74,6 @@ class Account
     private $commentHistoryPolicy;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\Account")
-     * @ORM\JoinTable(name="friends")
-     */
-    private $friends;
-
-    /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Account", mappedBy="blockedBy")
      * @ORM\JoinTable(name="blocked_accounts")
      */
@@ -106,16 +100,25 @@ class Account
      */
     private $accountComments;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\FriendRequest", mappedBy="sender", orphanRemoval=true)
+     */
+    private $outgoingFriendRequests;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\FriendRequest", mappedBy="recipient", orphanRemoval=true)
+     */
+    private $incomingFriendRequests;
+
     public function __construct()
     {
-        $this->friends = new ArrayCollection();
-        $this->incomingFriendRequests = new ArrayCollection();
-        $this->outgoingFriendRequests = new ArrayCollection();
         $this->blockedBy = new ArrayCollection();
         $this->blockedAccounts = new ArrayCollection();
         $this->outgoingPrivateMessages = new ArrayCollection();
         $this->incomingPrivateMessages = new ArrayCollection();
         $this->accountComments = new ArrayCollection();
+        $this->outgoingFriendRequests = new ArrayCollection();
+        $this->incomingFriendRequests = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -212,7 +215,7 @@ class Account
         return $this->player;
     }
 
-    public function setPlayer(Player $player): self
+    public function setPlayer(?Player $player): self
     {
         $this->player = $player;
 
@@ -239,60 +242,6 @@ class Account
     public function setPrivateMessagePolicy(int $privateMessagePolicy): self
     {
         $this->privateMessagePolicy = $privateMessagePolicy;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection|Account[]
-     */
-    public function getFriends(): Collection
-    {
-        return $this->friends;
-    }
-
-    public function addFriend(Account $friend): self
-    {
-        if (!$this->friends->contains($friend)) {
-            $this->friends[] = $friend;
-        }
-
-        return $this;
-    }
-
-    public function removeFriend(Account $friend): self
-    {
-        if ($this->friends->contains($friend)) {
-            $this->friends->removeElement($friend);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection|Account[]
-     */
-    public function getIncomingFriendRequests(): Collection
-    {
-        return $this->incomingFriendRequests;
-    }
-
-    public function addIncomingFriendRequest(Account $incomingFriendRequest): self
-    {
-        if (!$this->incomingFriendRequests->contains($incomingFriendRequest)) {
-            $this->incomingFriendRequests[] = $incomingFriendRequest;
-            $incomingFriendRequest->addOutgoingFriendRequest($this);
-        }
-
-        return $this;
-    }
-
-    public function removeIncomingFriendRequest(Account $incomingFriendRequest): self
-    {
-        if ($this->incomingFriendRequests->contains($incomingFriendRequest)) {
-            $this->incomingFriendRequests->removeElement($incomingFriendRequest);
-            $incomingFriendRequest->removeOutgoingFriendRequest($this);
-        }
 
         return $this;
     }
@@ -384,33 +333,7 @@ class Account
 
         return $this;
     }
-
-    /**
-     * @return Collection|Account[]
-     */
-    public function getOutgoingFriendRequests(): Collection
-    {
-        return $this->outgoingFriendRequests;
-    }
-
-    public function addOutgoingFriendRequest(Account $outgoingFriendRequest): self
-    {
-        if (!$this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
-            $this->outgoingFriendRequests[] = $outgoingFriendRequest;
-        }
-
-        return $this;
-    }
-
-    public function removeOutgoingFriendRequest(Account $outgoingFriendRequest): self
-    {
-        if ($this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
-            $this->outgoingFriendRequests->removeElement($outgoingFriendRequest);
-        }
-
-        return $this;
-    }
-
+    
     /**
      * @return Collection|Account[]
      */
@@ -478,6 +401,68 @@ class Account
     public function setCommentHistoryPolicy(int $commentHistoryPolicy): self
     {
         $this->commentHistoryPolicy = $commentHistoryPolicy;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|FriendRequest[]
+     */
+    public function getOutgoingFriendRequests(): Collection
+    {
+        return $this->outgoingFriendRequests;
+    }
+
+    public function addOutgoingFriendRequest(FriendRequest $outgoingFriendRequest): self
+    {
+        if (!$this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
+            $this->outgoingFriendRequests[] = $outgoingFriendRequest;
+            $outgoingFriendRequest->setSender($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOutgoingFriendRequest(FriendRequest $outgoingFriendRequest): self
+    {
+        if ($this->outgoingFriendRequests->contains($outgoingFriendRequest)) {
+            $this->outgoingFriendRequests->removeElement($outgoingFriendRequest);
+            // set the owning side to null (unless already changed)
+            if ($outgoingFriendRequest->getSender() === $this) {
+                $outgoingFriendRequest->setSender(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|FriendRequest[]
+     */
+    public function getIncomingFriendRequests(): Collection
+    {
+        return $this->incomingFriendRequests;
+    }
+
+    public function addIncomingFriendRequest(FriendRequest $incomingFriendRequest): self
+    {
+        if (!$this->incomingFriendRequests->contains($incomingFriendRequest)) {
+            $this->incomingFriendRequests[] = $incomingFriendRequest;
+            $incomingFriendRequest->setRecipient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeIncomingFriendRequest(FriendRequest $incomingFriendRequest): self
+    {
+        if ($this->incomingFriendRequests->contains($incomingFriendRequest)) {
+            $this->incomingFriendRequests->removeElement($incomingFriendRequest);
+            // set the owning side to null (unless already changed)
+            if ($incomingFriendRequest->getRecipient() === $this) {
+                $incomingFriendRequest->setRecipient(null);
+            }
+        }
 
         return $this;
     }

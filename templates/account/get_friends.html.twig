@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% for friend in friends %}
+		{% set other = friend.a.id == me ? friend.b : friend.a %}
+		{% set isUnread = friend.a.id == me ? (friend.isNewForA ? 1 : 0) : (friend.isNewForB ? 1 : 0) %}
+		1:{{ other.username }}:
+		2:{{ other.player.id }}:
+		9:{{ other.player.icon }}:
+		10:{{ other.player.color1 }}:
+		11:{{ other.player.color2 }}:
+		14:{{ other.player.iconType }}:
+		15:{{ other.player.special }}:
+		16:{{ other.id }}:
+		18:0:
+		41:{{ isUnread }}:
+		{% if not loop.last %}|{% endif %}
+	{% endfor %}
+{% endblock %}
