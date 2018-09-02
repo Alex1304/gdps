@@ -130,6 +130,10 @@ class AccountController extends AbstractController
             return new Response('-1');
 
         $acc = $player->getAccount();
+
+        if ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target))
+            return new Response('-1');
+
         $self = $player->getAccount() ? $acc->getId() === $target->getId() : false;
         $notifCounters = [];
         $friendState = 0;
@@ -219,6 +223,9 @@ class AccountController extends AbstractController
         $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
 
         if (!$target || $target->getFriendRequestPolicy() === 1)
+            return new Response('-1');
+
+        if ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target))
             return new Response('-1');
 
         $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());
@@ -361,9 +368,9 @@ class AccountController extends AbstractController
     }
 
     /**
-     * @Route("/getGJUserList20.php", name="get_friends")
+     * @Route("/getGJUserList20.php", name="get_user_list")
      */
-    public function getFriends(Request $r, PlayerManager $pm): Response
+    public function getUserList(Request $r, PlayerManager $pm): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -371,34 +378,44 @@ class AccountController extends AbstractController
         if (!$player || !$player->getAccount())
             return new Response('-1');
 
-        $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+        $isFriendList = !((bool) $r->request->get('type'));
 
-        if (!count($friends))
-            return new Response('-2');
+        if ($isFriendList) {
+            $users = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
 
-        $newForA = [];
-        $newForB = [];
+            if (!count($users))
+                return new Response('-2');
 
-        foreach ($friends as $friend) {
-            if ($player->getAccount()->getId() === $friend->getA()->getId()) {
-                if ($friend->getIsNewForA())
-                    $newForA[] = $friend;
-                $friend->setIsNewForA(false);
-            } else {
-                if ($friend->getIsNewForB())
-                    $newForB[] = $friend;
-                $friend->setIsNewForB(false);
+            $newForA = [];
+            $newForB = [];
+
+            foreach ($users as $friend) {
+                if ($player->getAccount()->getId() === $friend->getA()->getId()) {
+                    if ($friend->getIsNewForA())
+                        $newForA[] = $friend;
+                    $friend->setIsNewForA(false);
+                } else {
+                    if ($friend->getIsNewForB())
+                        $newForB[] = $friend;
+                    $friend->setIsNewForB(false);
+                }
             }
+
+            $newFriends = array_merge($newForA, $newForB);
+
+            $em->flush();
+        } else {
+            $users = $player->getAccount()->getBlockedAccounts();
+
+            if (!count($users))
+                return new Response('-2');
         }
 
-        $newFriends = array_merge($newForA, $newForB);
-
-        $em->flush();
-
-        return $this->render('account/get_friends.html.twig', [
-            'friends' => $friends,
-            'newFriends' => $newFriends,
+        return $this->render('account/get_user_list.html.twig', [
+            'users' => $users,
+            'newFriends' => $newFriends ?? [],
             'me' => $player->getAccount()->getId(),
+            'isFriendList' => $isFriendList,
         ]);
     }
 
@@ -444,7 +461,7 @@ class AccountController extends AbstractController
         $acc = $player->getAccount();
         $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
 
-        if (!$target || $target->getPrivateMessagePolicy() === 2 || ($target->getPrivateMessagePolicy() === 1 && !$em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId())))
+        if (!$target || $acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target) || $target->getPrivateMessagePolicy() === 2 || ($target->getPrivateMessagePolicy() === 1 && !$em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId())))
             return new Response('-1');
 
         $message = new PrivateMessage();
@@ -562,6 +579,74 @@ class AccountController extends AbstractController
                 $em->remove($message);
         }
 
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/blockGJUser20.php", name="block_account")
+     */
+    public function blockAccount(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+
+        if (!$target)
+            return new Response('-1');
+
+        // Force unfriend
+        $friend = $em->getRepository(Friend::class)->friendAB($player->getAccount()->getId(), $target->getId());
+        if ($friend)
+            $em->remove($friend);
+
+        // Delete any incoming friend request from that user
+        $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $player->getAccount()->getId());
+        if ($fr)
+            $em->remove($fr);
+
+        // Delete any outgoing friend request to that user
+        $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($player->getAccount()->getId(), $target->getId());
+        if ($fr)
+            $em->remove($fr);
+
+        // Delete all messages sent from that user
+        foreach ($player->getAccount()->getIncomingPrivateMessages() as $message) {
+            if ($message->getAuthor()->getId() === $target->getId()) {
+                $message->setRecipientHasDeleted(true);
+                if ($message->getAuthorHasDeleted())
+                    $em->remove($message);
+            }
+        }
+
+        $player->getAccount()->addBlockedAccount($target);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/unblockGJUser20.php", name="unblock_account")
+     */
+    public function unblockAccount(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+
+        if (!$target)
+            return new Response('-1');
+
+        $player->getAccount()->removeBlockedAccount($target);
         $em->flush();
 
         return new Response('1');

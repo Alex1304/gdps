@@ -1,8 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-	{% for friend in friends %}
-		{% set other = friend.a.id == me ? friend.b : friend.a %}
+	{% for user in users %}
+		{% set other = isFriendList ? (user.a.id == me ? user.b : user.a) : user %}
 		1:{{ other.username }}:
 		2:{{ other.player.id }}:
 		9:{{ other.player.icon }}:
@@ -12,7 +12,7 @@
 		15:{{ other.player.special }}:
 		16:{{ other.id }}:
 		18:0:
-		41:{% if friend in newFriends %}1{% else %}0{% endif %}:
+		41:{% if not isFriendList or user in newFriends %}1{% else %}0{% endif %}:
 		{% if not loop.last %}|{% endif %}
 	{% endfor %}
 {% endblock %}
