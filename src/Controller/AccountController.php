@@ -177,6 +177,11 @@ class AccountController extends AbstractController
         if (!$target)
             return new Response('-1');
 
+        $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());
+
+        if ($friend)
+            return new Response('-1');
+
         $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
 
         if (!$fr)
@@ -293,7 +298,7 @@ class AccountController extends AbstractController
         if (!$fr)
             return new Response('-1');
 
-        $friend = $em->getRepository(Friend::class)->friendAB($fr->getSender(), $fr->getRecipient());
+        $friend = $em->getRepository(Friend::class)->friendAB($fr->getSender()->getId(), $fr->getRecipient()->getId());
 
         if ($friend)
             return new Response('-1');
@@ -323,23 +328,61 @@ class AccountController extends AbstractController
             return new Response('-1');
 
         $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
-        $friends2 = array_slice($friends, 0, 9999);
 
         if (!count($friends))
             return new Response('-2');
 
+        $newForA = [];
+        $newForB = [];
+
         foreach ($friends as $friend) {
-            if ($player->getAccount()->getId() === $friend->getA()->getId())
+            if ($player->getAccount()->getId() === $friend->getA()->getId()) {
+                if ($friend->getIsNewForA())
+                    $newForA[] = $friend;
                 $friend->setIsNewForA(false);
-            else
+            } else {
+                if ($friend->getIsNewForB())
+                    $newForB[] = $friend;
                 $friend->setIsNewForB(false);
+            }
         }
+
+        $newFriends = array_merge($newForA, $newForB);
 
         $em->flush();
 
         return $this->render('account/get_friends.html.twig', [
-            'friends' => $friends2,
+            'friends' => $friends,
+            'newFriends' => $newFriends,
             'me' => $player->getAccount()->getId(),
         ]);
+    }
+
+    /**
+     * @Route("removeGJFriend20.php", name="remove_friend")
+     */
+    public function removeFriend(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $acc = $player->getAccount();
+        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+
+        if (!$target)
+            return new Response('-1');
+
+        $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());
+
+        if (!$friend)
+            return new Response('-1');
+
+        $em->remove($friend);
+        $em->flush();
+
+        return new Response('1');
     }
 }

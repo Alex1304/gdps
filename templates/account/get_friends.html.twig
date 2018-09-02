@@ -3,7 +3,6 @@
 {% block content %}
 	{% for friend in friends %}
 		{% set other = friend.a.id == me ? friend.b : friend.a %}
-		{% set isUnread = friend.a.id == me ? (friend.isNewForA ? 1 : 0) : (friend.isNewForB ? 1 : 0) %}
 		1:{{ other.username }}:
 		2:{{ other.player.id }}:
 		9:{{ other.player.icon }}:
@@ -13,7 +12,7 @@
 		15:{{ other.player.special }}:
 		16:{{ other.id }}:
 		18:0:
-		41:{{ isUnread }}:
+		41:{% if friend in newFriends %}1{% else %}0{% endif %}:
 		{% if not loop.last %}|{% endif %}
 	{% endfor %}
 {% endblock %}
