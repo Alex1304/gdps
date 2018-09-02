@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 use App\Entity\Player;
+use App\Entity\Friend;
 use App\Services\PlayerManager;
 
 class LeaderboardsController extends AbstractController
@@ -84,7 +85,17 @@ class LeaderboardsController extends AbstractController
                 $playerList = $em->getRepository(Player::class)->topLeaderboard($r->request->get('count'));
                 break;
             case 'friends':
-                return new Response('-1'); // Not yet implemented
+                if (!$player->getAccount())
+                    return new Response('-1');
+
+                $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+                $friendsArray = [];
+                foreach ($friends as $friend) {
+                    $other = $friend->getA()->getId() === $player->getAccount()->getId() ? $friend->getB() : $friend->getA();
+                    $friendsArray[] = $other->getPlayer()->getId();
+                }
+
+                $playerList = $em->getRepository(Player::class)->friendsLeaderboard($player->getId(), $friendsArray);
                 break;
             default:
                 return new Response('-1');

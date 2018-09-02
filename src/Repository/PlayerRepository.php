@@ -127,4 +127,18 @@ class PlayerRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function friendsLeaderboard($playerID, array $friendsArray)
+    {
+        $qb = $this->createQueryBuilder('p');
+
+        if (count($friendsArray) > 0)
+            $qb->where($qb->expr()->in('p.id', $friendsArray));
+
+        $qb->orWhere('p.id = :id')
+            ->setParameter('id', $playerID)
+            ->orderBy('p.stars DESC, p.statsLastUpdatedAt');
+
+        return $qb->getQuery()->getResult();
+    }
 }

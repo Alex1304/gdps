@@ -19,6 +19,7 @@ use App\Entity\LevelComment;
 use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
 use App\Entity\LevelDemonVote;
+use App\Entity\Friend;
 
 class LevelsController extends AbstractController
 {
@@ -152,9 +153,19 @@ class LevelsController extends AbstractController
             case 12:
                 $query = $em->getRepository(Level::class)->levelsByFollowed($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'), $r->request->get('followed'));
                 break;
-            /*case 13:
+            case 13:
+                if (!$player->getAccount())
+                    return new Response('-1');
 
-                break;*/
+                $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+                $friendsArray = [];
+                foreach ($friends as $friend) {
+                    $other = $friend->getA()->getId() === $player->getAccount()->getId() ? $friend->getB() : $friend->getA();
+                    $friendsArray[] = $other->getId();
+                }
+
+                $query = $em->getRepository(Level::class)->levelsByFollowed($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'), implode(',', $friendsArray));
+                break;
             case 16:
                 $query = $em->getRepository(Level::class)->hallOfFame($r->request->get('page'));
                 break;

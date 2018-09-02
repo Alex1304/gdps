@@ -14,6 +14,8 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class FriendRepository extends ServiceEntityRepository
 {
+    const MAX_FRIENDS = 1000;
+
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, Friend::class);
@@ -52,5 +54,17 @@ class FriendRepository extends ServiceEntityRepository
             ->setParameter('id', $id)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    public function hasReachedFriendsLimit($id): bool
+    {
+        return $this->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->join('f.a', 'a')
+            ->join('f.b', 'b')
+            ->where('a.id = :id OR b.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getSingleScalarResult() >= self::MAX_FRIENDS;
     }
 }

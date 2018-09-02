@@ -354,6 +354,12 @@ class AccountController extends AbstractController
         if ($friend)
             return new Response('-1');
 
+        $recipientHasReachedLimit = $em->getRepository(Friend::class)->hasReachedFriendsLimit($fr->getRecipient()->getId());
+        $senderHasReachedLimit = $em->getRepository(Friend::class)->hasReachedFriendsLimit($fr->getSender()->getId());
+
+        if ($recipientHasReachedLimit || $senderHasReachedLimit)
+            return new Response('-1');
+
         $friend = new Friend();
         $friend->setA($fr->getSender());
         $friend->setB($fr->getRecipient());
