@@ -43,6 +43,21 @@ class PrivateMessage
      */
     private $isUnread;
 
+    /**
+     * @ORM\Column(type="datetime")
+     */
+    private $postedAt;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $authorHasDeleted;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $recipientHasDeleted;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,6 +119,42 @@ class PrivateMessage
     public function setIsUnread(bool $isUnread): self
     {
         $this->isUnread = $isUnread;
+
+        return $this;
+    }
+
+    public function getPostedAt(): ?\DateTimeInterface
+    {
+        return $this->postedAt;
+    }
+
+    public function setPostedAt(\DateTimeInterface $postedAt): self
+    {
+        $this->postedAt = $postedAt;
+
+        return $this;
+    }
+
+    public function getAuthorHasDeleted(): ?bool
+    {
+        return $this->authorHasDeleted;
+    }
+
+    public function setAuthorHasDeleted(bool $authorHasDeleted): self
+    {
+        $this->authorHasDeleted = $authorHasDeleted;
+
+        return $this;
+    }
+
+    public function getRecipientHasDeleted(): ?bool
+    {
+        return $this->recipientHasDeleted;
+    }
+
+    public function setRecipientHasDeleted(bool $recipientHasDeleted): self
+    {
+        $this->recipientHasDeleted = $recipientHasDeleted;
 
         return $this;
     }

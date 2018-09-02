@@ -53,7 +53,7 @@ class FriendRequestRepository extends ServiceEntityRepository
             ->setParameter('rid', $accountID)
             ->orderBy('f.madeAt', 'DESC');
 
-        return $this->getPaginatedResult($qb, $page);
+        return $this->getPaginatedResult($qb, $page, 20);
     }
 
     public function outgoingFriendRequestsForAccount($accountID, $page)
@@ -64,7 +64,7 @@ class FriendRequestRepository extends ServiceEntityRepository
             ->setParameter('sid', $accountID)
             ->orderBy('f.madeAt', 'DESC');
 
-        return $this->getPaginatedResult($qb, $page);
+        return $this->getPaginatedResult($qb, $page, 20);
     }
 
     public function countUnreadIncomingFriendRequests($id)

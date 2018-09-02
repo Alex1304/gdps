@@ -14,6 +14,7 @@ use App\Entity\Account;
 use App\Entity\Player;
 use App\Entity\FriendRequest;
 use App\Entity\Friend;
+use App\Entity\PrivateMessage;
 
 class AccountController extends AbstractController
 {
@@ -135,9 +136,9 @@ class AccountController extends AbstractController
         $incomingFR = null;
 
         if ($self) {
-            $notifCounters['messages'] = 0;
-            $notifCounters['friends'] = $em->getRepository(Friend::class)->countNewFriends($acc->getId()) ?? 0;
-            $notifCounters['friendreqs'] = $em->getRepository(FriendRequest::class)->countUnreadIncomingFriendRequests($acc->getId()) ?? 0;
+            $notifCounters['messages'] = $em->getRepository(PrivateMessage::class)->countNewPrivateMessages($acc->getId());
+            $notifCounters['friends'] = $em->getRepository(Friend::class)->countNewFriends($acc->getId());
+            $notifCounters['friendreqs'] = $em->getRepository(FriendRequest::class)->countUnreadIncomingFriendRequests($acc->getId());
         } else {
             if ($em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId()))
                 $friendState = 1;
@@ -424,6 +425,143 @@ class AccountController extends AbstractController
             return new Response('-1');
 
         $em->remove($friend);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/uploadGJMessage20.php", name="send_private_message")
+     */
+    public function sendPrivateMessage(Request $r, PlayerManager $pm): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $acc = $player->getAccount();
+        $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
+
+        if (!$target || $target->getPrivateMessagePolicy() === 2 || ($target->getPrivateMessagePolicy() === 1 && !$em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId())))
+            return new Response('-1');
+
+        $message = new PrivateMessage();
+        $message->setAuthor($acc);
+        $message->setRecipient($target);
+        $message->setIsUnread(true);
+        $message->setSubject($r->request->get('subject'));
+        $message->setBody($r->request->get('body'));
+        $message->setPostedAt(new \DateTime());
+        $message->setAuthorHasDeleted(false);
+        $message->setRecipientHasDeleted(false);
+
+        $em->persist($message);
+        $em->flush();
+
+        return new Response('1');
+    }
+
+    /**
+     * @Route("/getGJMessages20.php", name="get_messages")
+     */
+    public function getPrivateMessages(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $incoming = !((bool) $r->request->get('getSent') ?? false);
+
+        $messages = $em->getRepository(PrivateMessage::class)->privateMessagesFor($player->getAccount()->getId(), $r->request->get('page'), !$incoming);
+
+        if (!$messages['total'])
+            return new Response('-2');
+
+        return $this->render('account/get_messages.html.twig', [
+            'messages' => $messages['result'],
+            'total' => $messages['total'],
+            'page' => $r->request->get('page'),
+            'count' => count($messages['result']),
+            'timeFormatter' => $tf,
+            'incoming' => $incoming,
+        ]);
+    }
+
+    /**
+     * @Route("/downloadGJMessage20.php", name="read_private_message")
+     */
+    public function readPrivateMessage(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $message = $em->getRepository(PrivateMessage::class)->find($r->request->get('messageID'));
+
+        if (!$message)
+            return new Response('-1');
+
+        $isSender = false;
+
+        if ($message->getAuthor()->getId() === $player->getAccount()->getId())
+            $isSender = true;
+        elseif ($message->getRecipient()->getId() !== $player->getAccount()->getId())
+            return new Response('-1'); // in this case the user is trying to read someone else's message that is not intended for him.
+
+        if (!$isSender) { // Mark as read
+            $message->setIsUnread(false);
+            $em->flush();
+        }
+
+        return $this->render('account/read_message.html.twig', [
+            'message' => $message,
+            'timeFormatter' => $tf,
+            'isSender' => $isSender,
+        ]);
+
+    }
+
+    /**
+     * @Route("/deleteGJMessages20.php", name="delete_private_messages")
+     */
+    public function deletePrivateMessage(Request $r, PlayerManager $pm)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $bulk = $r->request->get('messages');
+
+        $messagesToDelete = $bulk ? explode(',', $bulk) : [ $r->request->get('messageID') ];
+
+        foreach ($messagesToDelete as $messageID) {
+            $message = $em->getRepository(PrivateMessage::class)->find($messageID);
+            if (!$message)
+                return new Response('-1');
+
+            $isSender = false;
+            if ($message->getAuthor()->getId() === $player->getAccount()->getId())
+                $isSender = true;
+            elseif ($message->getRecipient()->getId() !== $player->getAccount()->getId())
+                return new Response('-1'); // in this case the user is trying to delete someone else's message that is not intended for him.
+
+            if ($isSender)
+                $message->setAuthorHasDeleted(true);
+            else
+                $message->setRecipientHasDeleted(true);
+
+            if ($message->getAuthorHasDeleted() && $message->getRecipientHasDeleted())
+                $em->remove($message);
+        }
+
         $em->flush();
 
         return new Response('1');

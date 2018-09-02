@@ -19,32 +19,46 @@ class PrivateMessageRepository extends ServiceEntityRepository
         parent::__construct($registry, PrivateMessage::class);
     }
 
-//    /**
-//     * @return PrivateMessage[] Returns an array of PrivateMessage objects
-//     */
-    /*
-    public function findByExampleField($value)
+    /**
+     * Limits results of the query to show the desired page
+     */
+    private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('p.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+        $result = $qb->getQuery()->getResult();
 
-    /*
-    public function findOneBySomeField($value): ?PrivateMessage
-    {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return [
+            'result' => array_slice($result, $page * $count, $count),
+            'total' => count($result),
+        ];
     }
-    */
+
+    public function privateMessagesFor($accountID, int $page, bool $outgoing)
+    {
+        $qb = $this->createQueryBuilder('m');
+
+        if ($outgoing) {
+            $qb->join('m.author', 'a')
+                ->where('a.id = :id AND m.authorHasDeleted = 0');
+        } else {
+            $qb->join('m.recipient', 'r')
+                ->where('r.id = :id AND m.recipientHasDeleted = 0');
+        }
+        
+        $qb->setParameter('id', $accountID)
+            ->orderBy('m.postedAt', 'DESC');
+
+        return $this->getPaginatedResult($qb, $page, 50);
+    }
+
+    public function countNewPrivateMessages($id): int
+    {
+        return $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->join('m.recipient', 'r')
+            ->where('r.id = :id')
+            ->setParameter('id', $id)
+            ->andWhere('m.isUnread = 1 AND m.recipientHasDeleted = 0')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

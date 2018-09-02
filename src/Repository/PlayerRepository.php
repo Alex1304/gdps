@@ -122,7 +122,7 @@ class PlayerRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('p')
             ->where('p.creatorPoints > 0')
-            ->orderBy('p.creatorPoints DESC, p.statsLastUpdatedAt')
+            ->orderBy('p.creatorPoints DESC, p.stars DESC, p.statsLastUpdatedAt')
             ->setMaxResults($count)
             ->getQuery()
             ->getResult();
