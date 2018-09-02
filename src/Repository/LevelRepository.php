@@ -114,10 +114,15 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function searchLevels($keywords, $difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
-            ->andwhere('(l.id = :keywordsID OR l.name LIKE :keywordsName)')
-            ->setParameter('keywordsID', $keywords)
-            ->setParameter('keywordsName', $keywords . '%');
+        $qb = $this->queryBuilderTemplate();
+
+        if (is_numeric($keywords)) {
+            $qb->andWhere('l.id = :keywordsID')
+                ->setParameter('keywordsID', $keywords);
+        } else {
+            $qb->andWhere('l.name LIKE :keywordsName')
+                ->setParameter('keywordsName', $keywords . '%');
+        }
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
 

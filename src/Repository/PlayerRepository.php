@@ -21,6 +21,37 @@ class PlayerRepository extends ServiceEntityRepository
     }
 
     /**
+     * Limits results of the query to show the desired page
+     */
+    private function getPaginatedResult(&$qb, $page, $count = 10)
+    {
+        $result = $qb->getQuery()->getResult();
+
+        return [
+            'result' => array_slice($result, $page * $count, $count),
+            'total' => count($result),
+        ];
+    }
+
+    public function search($str, int $page)
+    {
+        $qb = $this->createQueryBuilder('p');
+
+        if (is_numeric($str)) {
+            $qb->where('p.id = :strID')
+                ->setParameter('strID', $str);
+        } else {
+            $qb->join('p.account', 'a')
+                ->where('a.username LIKE :str')
+                ->setParameter('str', $str . '%');
+        }
+        
+        $qb->orderBy('p.stars DESC, p.statsLastUpdatedAt');
+
+        return $this->getPaginatedResult($qb, $page);
+    }
+
+    /**
      * Finds a player that meets the following requirements:
      * - the deviceID matches exactly the one given in argument
      * - the player doesn't have any associated account

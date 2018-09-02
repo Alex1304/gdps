@@ -159,6 +159,26 @@ class AccountController extends AbstractController
     }
 
     /**
+     * @Route("/getGJUsers20.php", name="search_users")
+     */
+    public function searchUsers(Request $r): Response
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $players = $em->getRepository(Player::class)->search($r->request->get('str'), $r->request->get('page'));
+
+        if (!$players['total'])
+            return new Response('-1');
+
+        return $this->render('account/search_users.html.twig', [
+            'players' => $players['result'],
+            'total' => $players['total'],
+            'page' => $r->request->get('page'),
+            'count' => count($players['result']),
+        ]);
+    }
+
+    /**
      * @Route("/updateGJAccSettings20.php", name="update_account_settings")
      */
     public function updateAccountSettings(Request $r, PlayerManager $pm): Response
