@@ -244,9 +244,9 @@ class AccountController extends AbstractController
     }
 
     /**
-     * @Route("/deleteGJFriendRequests20.php", name="delete_friend_request")
+     * @Route("/deleteGJFriendRequests20.php", name="delete_friend_requests")
      */
-    public function deleteFriendRequest(Request $r, PlayerManager $pm): Response
+    public function deleteFriendRequests(Request $r, PlayerManager $pm): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -255,20 +255,20 @@ class AccountController extends AbstractController
             return new Response('-1');
 
         $acc = $player->getAccount();
-        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+        $frsToDelete = $r->request->get('accounts') ? explode(',', $r->request->get('accounts')) : [ $r->request->get('targetAccountID') ];
 
-        if (!$target)
-            return new Response('-1');
+        foreach ($frsToDelete as $targetID) {
+            $target = $em->getRepository(Account::class)->find($targetID);
 
-        if ($r->request->get('isSender'))
-            $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
-        else
-            $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId());
+            if ($r->request->get('isSender'))
+                $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
+            else
+                $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId());
 
-        if (!$fr)
-            return new Response('-1');
-
-        $em->remove($fr);
+            if ($fr)
+                $em->remove($fr);
+        }
+        
         $em->flush();
 
         return new Response('1');

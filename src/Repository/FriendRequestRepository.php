@@ -41,6 +41,7 @@ class FriendRequestRepository extends ServiceEntityRepository
             ->setParameter('sid', $senderID)
             ->andWhere('r.id = :rid')
             ->setParameter('rid', $recipientID)
+            ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
     }
