@@ -49,7 +49,7 @@ class FriendRequestRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('f')
             ->join('f.recipient', 'r')
-            ->andWhere('r.id = :rid')
+            ->where('r.id = :rid')
             ->setParameter('rid', $accountID)
             ->orderBy('f.madeAt', 'DESC');
 
@@ -60,10 +60,22 @@ class FriendRequestRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('f')
             ->join('f.sender', 's')
-            ->andWhere('s.id = :sid')
+            ->where('s.id = :sid')
             ->setParameter('sid', $accountID)
             ->orderBy('f.madeAt', 'DESC');
 
         return $this->getPaginatedResult($qb, $page);
+    }
+
+    public function countUnreadIncomingFriendRequests($id)
+    {
+        return $this->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->join('f.recipient', 'r')
+            ->where('r.id = :id')
+            ->setParameter('id', $id)
+            ->andWhere('f.isUnread = 1')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 }

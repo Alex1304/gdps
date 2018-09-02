@@ -41,4 +41,16 @@ class FriendRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function countNewFriends($id)
+    {
+        return $this->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->join('f.a', 'a')
+            ->join('f.b', 'b')
+            ->where('(a.id = :id AND f.isNewForA = 1) OR (b.id = :id AND f.isNewForB = 1)')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

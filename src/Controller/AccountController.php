@@ -118,7 +118,7 @@ class AccountController extends AbstractController
     /**
      * @Route("/getGJUserInfo20.php", name="get_user_info")
      */
-    public function getUserInfo(Request $r, PlayerManager $pm): Response
+    public function getUserInfo(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -128,10 +128,33 @@ class AccountController extends AbstractController
         if (!$target)
             return new Response('-1');
 
+        $acc = $player->getAccount();
+        $self = $player->getAccount() ? $acc->getId() === $target->getId() : false;
+        $notifCounters = [];
+        $friendState = 0;
+        $incomingFR = null;
+
+        if ($self) {
+            $notifCounters['messages'] = 0;
+            $notifCounters['friends'] = $em->getRepository(Friend::class)->countNewFriends($acc->getId()) ?? 0;
+            $notifCounters['friendreqs'] = $em->getRepository(FriendRequest::class)->countUnreadIncomingFriendRequests($acc->getId()) ?? 0;
+        } else {
+            if ($em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId()))
+                $friendState = 1;
+            elseif ($incomingFR = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId()))
+                $friendState = 3;
+            elseif ($em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId()))
+                $friendState = 4;
+        }
+
         return $this->render('account/get_user_info.html.twig', [
             'account' => $target,
             'globalRank' => $em->getRepository(Player::class)->globalRank($target->getPlayer()),
-            'self' => $player->getAccount() ? $player->getAccount()->getId() === $target->getId() : false,
+            'self' => $self,
+            'friendState' => $friendState,
+            'notifCounters' => $notifCounters,
+            'incomingFR' => $incomingFR,
+            'timeFormatter' => $tf,
         ]);
     }
 
@@ -174,7 +197,7 @@ class AccountController extends AbstractController
         $acc = $player->getAccount();
         $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
 
-        if (!$target)
+        if (!$target || $target->getFriendRequestPolicy() === 1)
             return new Response('-1');
 
         $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());

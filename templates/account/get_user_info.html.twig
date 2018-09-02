@@ -26,14 +26,20 @@
 	47:{{ account.player.accExplosion }}:
 	30:{{ globalRank }}:
 	16:{{ account.id }}:
-	31:0:
+	31:{{ friendState }}:
 	44:{{ account.twitter }}:
 	45:{{ account.twitch }}:
 	{% if self %}
-		38:0:
-		39:0:
-		40:0:
+		38:{{ notifCounters.messages }}:
+		39:{{ notifCounters.friendreqs }}:
+		40:{{ notifCounters.friends }}:
 	{% endif %}
 	29:1:
 	49:0
+	{% if incomingFR is not null %}
+		:
+		32:{{ incomingFR.id }}:
+		35:{{ incomingFR.message }}:
+		37:{{ timeFormatter.format(incomingFR.madeAt) }}
+	{% endif %}
 {% endblock %}
