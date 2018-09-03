@@ -52,14 +52,7 @@
 	{% endfor %}
 	#
 	{% for song in songs %}
-		1~|~{{ song.id }}~|~
-		2~|~{{ song.name }}~|~
-		3~|~{{ song.authorID }}~|~
-		4~|~{{ song.authorName }}~|~
-		5~|~{{ song.size }}~|~
-		6~|~~|~
-		7~|~{{ song.download }}~|~
-		8~|~0
+		{% include 'levels/song_info.html.twig' with {'song': song} only %}
 		{% if not loop.last %}~:~{% endif %}
 	{% endfor %}
 	#

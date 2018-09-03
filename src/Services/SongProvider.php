@@ -26,13 +26,11 @@ class SongProvider
 
         $songData = explode('~|~', $result);
 
-        return [
-            'id' => $songData[1],
-            'name' => $songData[3],
-            'authorID' => $songData[5],
-            'authorName' => $songData[7],
-            'size' => $songData[9],
-            'download' => $songData[13],
-        ];
+        $theSong = [];
+
+        for ($i = 0 ; $i < count($songData) - 1 ; $i += 2)
+            $theSong[$songData[$i]] = $songData[$i + 1];
+
+        return $theSong;
     }
 }
