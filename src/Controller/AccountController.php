@@ -50,6 +50,7 @@ class AccountController extends AbstractController
         $account->setRegisteredAt(new \DateTime());
         $account->setFriendRequestPolicy(0);
         $account->setPrivateMessagePolicy(0);
+        $account->setCommentHistoryPolicy(0);
 
         $em->persist($account);
         $em->flush();
