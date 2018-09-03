@@ -77,7 +77,10 @@ class PlayerRepository extends ServiceEntityRepository
     }
 
     public function globalRank(Player $player)
-    {
+    {   
+        if ($player->getStars() <= 0)
+            return 0;
+
         $qb = $this->createQueryBuilder('p');
         return $qb
             ->select('COUNT(p.id)')
@@ -97,6 +100,7 @@ class PlayerRepository extends ServiceEntityRepository
     public function topLeaderboard(int $count)
     {
         return $this->createQueryBuilder('p')
+            ->where('p.stars > 0')
             ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
             ->setMaxResults($count)
             ->getQuery()
@@ -109,6 +113,8 @@ class PlayerRepository extends ServiceEntityRepository
 
         return [
             'result' => $this->createQueryBuilder('p')
+                ->where('p.stars > 0 OR p.id = :id')
+                ->setParameter('id', $player->getId())
                 ->orderBy('p.stars DESC, p.statsLastUpdatedAt')
                 ->setFirstResult(max(0, $rank - $count / 2))
                 ->setMaxResults($count)
