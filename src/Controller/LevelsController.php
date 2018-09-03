@@ -47,7 +47,7 @@ class LevelsController extends AbstractController
                 $level->setIsEpic(0);
                 $level->setName($r->request->get('levelName'));
                 $level->setUploadedAt(new \DateTime());
-                $level->setIsUnlisted($r->request->get('unlisted'));
+                $level->setIsUnlisted($r->request->get('unlisted') ?? 0);
                 $level->setOriginal($original);
                 $level->setDifficulty(0);
                 $level->setDemonDifficulty(0);
@@ -66,7 +66,7 @@ class LevelsController extends AbstractController
             return new Response('-1');
 
 
-        $level->setDescription($r->request->get('levelDesc'));
+        $level->setDescription($r->request->get('levelDesc') ?? '');
         $level->setCreator($player);
         if (substr($r->request->get('levelString'), 0, 3) == 'kS1')
             $level->setData($b64->encode(gzcompress($r->request->get('levelString'))));
@@ -76,14 +76,14 @@ class LevelsController extends AbstractController
         $level->setCustomSongID($r->request->get('songID'));
         $level->setGameVersion($r->request->get('gameVersion'));
         $level->setVersion($levelOverwrite ? $level->getVersion() + 1 : $r->request->get('levelVersion'));
-        $level->setRequestedStars($r->request->get('requestedStars'));
+        $level->setRequestedStars($r->request->get('requestedStars') ?? 0);
         $level->setLastUpdatedAt(new \DateTime());
         $level->setLength($r->request->get('levelLength'));
-        $level->setIsLDM($r->request->get('ldm'));
-        $level->setPassword($r->request->get('password'));
-        $level->setObjectCount($r->request->get('objects'));
+        $level->setIsLDM($r->request->get('ldm') ?? 0);
+        $level->setPassword($r->request->get('password') ?? 0);
+        $level->setObjectCount($r->request->get('objects') ?? 0);
         $level->setExtraString($r->request->get('extraString'));
-        $level->setIsTwoPlayer($r->request->get('twoPlayer'));
+        $level->setIsTwoPlayer($r->request->get('twoPlayer') ?? 0);
         $level->setCoins($r->request->get('coins'));
 
         $em->persist($player);
