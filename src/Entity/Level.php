@@ -198,6 +198,11 @@ class Level
      */
     private $levelDemonVotes;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelScore", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelScores;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
@@ -206,6 +211,7 @@ class Level
         $this->levelComments = new ArrayCollection();
         $this->levelStarVotes = new ArrayCollection();
         $this->levelDemonVotes = new ArrayCollection();
+        $this->levelScores = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -733,6 +739,37 @@ class Level
             // set the owning side to null (unless already changed)
             if ($levelDemonVote->getLevel() === $this) {
                 $levelDemonVote->setLevel(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelScore[]
+     */
+    public function getLevelScores(): Collection
+    {
+        return $this->levelScores;
+    }
+
+    public function addLevelScore(LevelScore $levelScore): self
+    {
+        if (!$this->levelScores->contains($levelScore)) {
+            $this->levelScores[] = $levelScore;
+            $levelScore->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelScore(LevelScore $levelScore): self
+    {
+        if ($this->levelScores->contains($levelScore)) {
+            $this->levelScores->removeElement($levelScore);
+            // set the owning side to null (unless already changed)
+            if ($levelScore->getLevel() === $this) {
+                $levelScore->setLevel(null);
             }
         }
 

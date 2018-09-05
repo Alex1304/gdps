@@ -20,6 +20,7 @@ use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
 use App\Entity\LevelDemonVote;
 use App\Entity\Friend;
+use App\Entity\LevelScore;
 
 class LevelsController extends AbstractController
 {
@@ -420,5 +421,64 @@ class LevelsController extends AbstractController
         $em->flush();
 
         return new Response('1');
+    }
+
+    /**
+     * @Route("/getGJLevelScores211.php", name="get_level_scores")
+     */
+    public function getLevelScores(Request $r, PlayerManager $pm, TimeFormatter $tf)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $player = $pm->getFromRequest($r);
+
+        if (!$player || !$player->getAccount())
+            return new Response('-1');
+
+        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+
+        if (!$level)
+            return new Response('-1');
+
+        $myScore = $em->getRepository(LevelScore::class)->findExistingScore($player->getAccount()->getId(), $level->getId());
+        $percent = $r->request->get('percent');
+        $coins = $r->request->get('s9') - 5819;
+
+        if (!$myScore && $percent > 0) {
+            $myScore = new LevelScore();
+            $myScore->setPercent($percent);
+            $myScore->setCoins($coins);
+            $myScore->setAccount($player->getAccount());
+            $myScore->setLevel($level);
+            $myScore->setUpdatedAt(new \DateTime());
+            $em->persist($myScore);
+        } elseif ($myScore && ($myScore->getPercent() != $percent || $myScore->getCoins() != $coins)) {
+            $myScore->setPercent($percent);
+            $myScore->setCoins($coins);
+            $myScore->setUpdatedAt(new \DateTime());
+        }
+
+        $em->flush();
+
+        switch ($r->request->get('type')) {
+            case 0:
+                $scores = $em->getRepository(LevelScore::class)->friendsLeaderboard($player->getAccount()->getId(), $level->getId());
+                break;
+            case 1:
+                $scores = $em->getRepository(LevelScore::class)->topLeaderboard($level->getId());
+                break;
+            case 2:
+                $scores = $em->getRepository(LevelScore::class)->weekLeaderboard($level->getId());
+                break;
+            default:
+                return new Response('-1');
+        }
+
+        if (!count($scores))
+            return new Response('-1');
+
+        return $this->render('levels/get_scores.html.twig', [
+            'scores' => $scores,
+            'timeFormatter' => $tf,
+        ]);
     }
 }
