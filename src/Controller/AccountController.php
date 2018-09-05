@@ -18,6 +18,10 @@ use App\Entity\PrivateMessage;
 
 class AccountController extends AbstractController
 {
+    const USERS_PER_PAGE = 10;
+    const FRIEND_REQUESTS_PER_PAGE = 20;
+    const PRIATE_MESSAGES_PER_PAGE = 50;
+
     /**
      * @Route("/accounts/registerGJAccount.php", name="account_register")
      */
@@ -180,7 +184,7 @@ class AccountController extends AbstractController
             'players' => $players['result'],
             'total' => $players['total'],
             'page' => $r->request->get('page'),
-            'count' => count($players['result']),
+            'count' => self::USERS_PER_PAGE,
         ]);
     }
 
@@ -305,7 +309,7 @@ class AccountController extends AbstractController
             'frs' => $frs['result'],
             'total' => $frs['total'],
             'page' => $r->request->get('page'),
-            'count' => count($frs['result']),
+            'count' => self::FRIEND_REQUESTS_PER_PAGE,
             'timeFormatter' => $tf,
             'incoming' => (bool) $r->request->get('getSent'),
         ]);
@@ -509,7 +513,7 @@ class AccountController extends AbstractController
             'messages' => $messages['result'],
             'total' => $messages['total'],
             'page' => $r->request->get('page'),
-            'count' => count($messages['result']),
+            'count' => self::PRIATE_MESSAGES_PER_PAGE,
             'timeFormatter' => $tf,
             'incoming' => $incoming,
         ]);

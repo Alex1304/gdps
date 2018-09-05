@@ -49,6 +49,22 @@ class LevelRepository extends ServiceEntityRepository
     }
 
     /**
+     * Finds a level by a specific creator with a specific name
+     */
+    public function levelWithSameNameByCreator($creatorID, $name): ?Level
+    {
+        return $this->createQueryBuilder('l')
+            ->join('l.creator', 'c')
+            ->where('c.id = :cid')
+            ->setParameter('cid', $creatorID)
+            ->andWhere('l.name = :name')
+            ->setParameter('name', $name)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Adds WHERE statements to the query according to the given filters
      */
     private function applyFilters(&$qb, $difficulties, $lengths, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?bool $customSong, $completedLevels)

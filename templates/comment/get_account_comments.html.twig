@@ -10,5 +10,5 @@
 		{% if not loop.last %}|{% endif %}
 	{% endfor %}
 	#
-	{{ total }}:{{ page }}:{{ count }}
+	{{ total }}:{{ page * count }}:{{ count }}
 {% endblock %}

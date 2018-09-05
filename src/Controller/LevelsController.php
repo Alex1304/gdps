@@ -23,6 +23,8 @@ use App\Entity\Friend;
 
 class LevelsController extends AbstractController
 {
+    const LEVELS_PER_PAGE = 10;
+
     /**
      * @Route("/uploadGJLevel21.php", name="upload_level")
      */
@@ -39,9 +41,10 @@ class LevelsController extends AbstractController
         $levelOverwrite = false;
 
         if ($r->request->get('levelID') == 0) {
-            $levelsWithSameName = $em->getRepository(Level::class)->findByName($r->request->get('levelName'));
+            $levelsWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($player->getId(), $r->request->get('levelName'));
             if (!count($levelsWithSameName)) {
                 $level = new Level();
+                $level->setCreator($player);
                 $level->setStars(0);
                 $level->setFeatureScore(0);
                 $level->setIsEpic(0);
@@ -65,9 +68,7 @@ class LevelsController extends AbstractController
         if (!$level)
             return new Response('-1');
 
-
         $level->setDescription($r->request->get('levelDesc') ?? '');
-        $level->setCreator($player);
         if (substr($r->request->get('levelString'), 0, 3) == 'kS1')
             $level->setData($b64->encode(gzcompress($r->request->get('levelString'))));
         else
@@ -201,6 +202,7 @@ class LevelsController extends AbstractController
             'total' => $total,
             'creators' => $creators,
             'page' => $r->request->get('page'),
+            'count' => self::LEVELS_PER_PAGE,
             'hash' => $hg->generateForLevelsArray($levels),
         ]);
     }

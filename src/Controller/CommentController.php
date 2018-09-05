@@ -15,6 +15,8 @@ use App\Entity\Level;
 
 class CommentController extends AbstractController
 {
+    const COMMENTS_PER_PAGE = 10;
+
     /**
      * @Route("/uploadGJComment21.php", name="upload_level_comment")
      */
@@ -62,7 +64,7 @@ class CommentController extends AbstractController
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
     		'page' => $r->request->get('page'),
-    		'count' => count($comments['result']),
+    		'count' => $r->request->get('count') ?? self::COMMENTS_PER_PAGE,
     	]);
     }
 
@@ -84,7 +86,7 @@ class CommentController extends AbstractController
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
     		'page' => $r->request->get('page'),
-    		'count' => count($comments['result']),
+    		'count' => $r->request->get('count') ?? self::COMMENTS_PER_PAGE,
     	]);
     }
 
@@ -143,7 +145,7 @@ class CommentController extends AbstractController
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
     		'page' => $r->request->get('page'),
-    		'count' => count($comments['result']),
+    		'count' => self::COMMENTS_PER_PAGE,
     	]);
     }
 
