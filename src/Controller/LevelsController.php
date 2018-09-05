@@ -39,13 +39,13 @@ class LevelsController extends AbstractController
 
         $level = null;
         $original = $r->request->get('original') > 0 ? $em->getRepository(Level::class)->find($r->request->get('original')) : null;
-        $levelOverwrite = false;
 
         if ($r->request->get('levelID') == 0) {
             $levelWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($player->getId(), $r->request->get('levelName'));
             if (!$levelWithSameName) {
                 $level = new Level();
                 $level->setCreator($player);
+                $level->setVersion(0); // Will be incremented anyway at line 79
                 $level->setStars(0);
                 $level->setFeatureScore(0);
                 $level->setIsEpic(0);
@@ -61,7 +61,6 @@ class LevelsController extends AbstractController
                 $level->setRewardsGivenAt(null);
             } else {
                 $level = $levelWithSameName;
-                $levelOverwrite = true;
             }
         } else
             $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
@@ -77,7 +76,7 @@ class LevelsController extends AbstractController
         $level->setAudioTrack($r->request->get('audioTrack'));
         $level->setCustomSongID($r->request->get('songID'));
         $level->setGameVersion($r->request->get('gameVersion'));
-        $level->setVersion($levelOverwrite ? $level->getVersion() + 1 : $r->request->get('levelVersion'));
+        $level->setVersion($level->getVersion() + 1);
         $level->setRequestedStars($r->request->get('requestedStars') ?? 0);
         $level->setLastUpdatedAt(new \DateTime());
         $level->setLength($r->request->get('levelLength'));
