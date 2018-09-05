@@ -41,8 +41,8 @@ class LevelsController extends AbstractController
         $levelOverwrite = false;
 
         if ($r->request->get('levelID') == 0) {
-            $levelsWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($player->getId(), $r->request->get('levelName'));
-            if (!count($levelsWithSameName)) {
+            $levelWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($player->getId(), $r->request->get('levelName'));
+            if (!$levelWithSameName) {
                 $level = new Level();
                 $level->setCreator($player);
                 $level->setStars(0);
@@ -59,7 +59,7 @@ class LevelsController extends AbstractController
                 $level->setHasCoinsVerified(false);
                 $level->setRewardsGivenAt(null);
             } else {
-                $level = $levelsWithSameName[0];
+                $level = $levelWithSameName;
                 $levelOverwrite = true;
             }
         } else
