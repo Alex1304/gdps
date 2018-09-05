@@ -2,15 +2,14 @@
 
 {% block content %}
 	{% for user in users %}
-		{% set other = isFriendList ? (user.a.id == me ? user.b : user.a) : user %}
-		1:{{ other.username }}:
-		2:{{ other.player.id }}:
-		9:{{ other.player.icon }}:
-		10:{{ other.player.color1 }}:
-		11:{{ other.player.color2 }}:
-		14:{{ other.player.iconType }}:
-		15:{{ other.player.special }}:
-		16:{{ other.id }}:
+		1:{{ user.username }}:
+		2:{{ user.player.id }}:
+		9:{{ user.player.icon }}:
+		10:{{ user.player.color1 }}:
+		11:{{ user.player.color2 }}:
+		14:{{ user.player.iconType }}:
+		15:{{ user.player.special }}:
+		16:{{ user.id }}:
 		18:0:
 		41:{% if not isFriendList or user in newFriends %}1{% else %}0{% endif %}:
 		{% if not loop.last %}|{% endif %}

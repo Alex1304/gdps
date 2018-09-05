@@ -404,7 +404,7 @@ class LevelsController extends AbstractController
     /**
      * @Route("/updateGJDesc20.php", name="update_level_desc")
      */
-    public function updateLevelDesc(Request $r, PlayerManager $pm)
+    public function updateLevelDesc(Request $r, PlayerManager $pm): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);
@@ -426,7 +426,7 @@ class LevelsController extends AbstractController
     /**
      * @Route("/getGJLevelScores211.php", name="get_level_scores")
      */
-    public function getLevelScores(Request $r, PlayerManager $pm, TimeFormatter $tf)
+    public function getLevelScores(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
     {
         $em = $this->getDoctrine()->getManager();
         $player = $pm->getFromRequest($r);

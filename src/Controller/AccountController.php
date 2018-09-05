@@ -392,22 +392,25 @@ class AccountController extends AbstractController
         $isFriendList = !((bool) $r->request->get('type'));
 
         if ($isFriendList) {
-            $users = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+            $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
 
-            if (!count($users))
+            if (!count($friends))
                 return new Response('-2');
 
             $newForA = [];
             $newForB = [];
+            $users = [];
 
-            foreach ($users as $friend) {
+            foreach ($friends as $friend) {
                 if ($player->getAccount()->getId() === $friend->getA()->getId()) {
+                    $users[] = $friend->getB();
                     if ($friend->getIsNewForA())
-                        $newForA[] = $friend;
+                        $newForA[] = $friend->getB();
                     $friend->setIsNewForA(false);
                 } else {
+                    $users[] = $friend->getA();
                     if ($friend->getIsNewForB())
-                        $newForB[] = $friend;
+                        $newForB[] = $friend->getA();
                     $friend->setIsNewForB(false);
                 }
             }
@@ -417,21 +420,24 @@ class AccountController extends AbstractController
             $em->flush();
         } else {
             $users = $player->getAccount()->getBlockedAccounts();
-
-            if (!count($users))
-                return new Response('-2');
         }
+
+        if (!count($users))
+            return new Response('-2');
+
+        uasort($users, function ($userA, $userB) {
+            return strcasecmp($userA->getUsername(), $userB->getUsername());
+        });
 
         return $this->render('account/get_user_list.html.twig', [
             'users' => $users,
             'newFriends' => $newFriends ?? [],
-            'me' => $player->getAccount()->getId(),
             'isFriendList' => $isFriendList,
         ]);
     }
 
     /**
-     * @Route("removeGJFriend20.php", name="remove_friend")
+     * @Route("/removeGJFriend20.php", name="remove_friend")
      */
     public function removeFriend(Request $r, PlayerManager $pm): Response
     {
