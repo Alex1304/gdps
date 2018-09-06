@@ -22,17 +22,23 @@ class LevelRepository extends ServiceEntityRepository
     /**
      * Returns a query builder with prefilled info to have easy access to download/like count
      */
-    private function queryBuilderTemplate()
+    private function queryBuilderTemplate($sortByDownloads = false)
     {
-        return $this->getEntityManager()->createQueryBuilder()
+        $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('l, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount, COUNT(downloads) AS HIDDEN downloadCount')
             ->from('App\Entity\Level', 'l')
             ->leftJoin('l.likedBy', 'likes')
             ->leftJoin('l.dislikedBy', 'dislikes')
             ->leftJoin('l.downloadedBy', 'downloads')
             ->where('l.isUnlisted = 0')
-            ->groupBy('l.id')
-            ->orderBy('likeCount', 'DESC');
+            ->groupBy('l.id');
+
+        if ($sortByDownloads)
+            $qb->orderBy('downloadCount', 'DESC');
+        else
+            $qb->orderBy('likeCount', 'DESC');
+
+        return $qb;
     }
 
     /**
@@ -150,8 +156,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function mostDownloadedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
-            ->orderBy('downloadCount', 'DESC');
+        $qb = $this->queryBuilderTemplate(true);
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
 
