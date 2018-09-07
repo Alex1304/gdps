@@ -20,25 +20,32 @@ class LevelRepository extends ServiceEntityRepository
     }
 
     /**
-     * Returns a query builder with prefilled info to have easy access to download/like count
+     * Returns a query builder with prefilled info to have easy access to like count
      */
-    private function queryBuilderTemplate($sortByDownloads = false)
+    private function queryBuilderTemplate()
     {
-        $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('l, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount, COUNT(downloads) AS HIDDEN downloadCount')
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('l, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount')
             ->from('App\Entity\Level', 'l')
             ->leftJoin('l.likedBy', 'likes')
             ->leftJoin('l.dislikedBy', 'dislikes')
+            ->where('l.isUnlisted = 0')
+            ->groupBy('l.id')
+            ->orderBy('likeCount', 'DESC');
+    }
+
+    /**
+     * Returns a query builder with prefilled info to have easy access to download count
+     */
+    private function queryBuilderTemplate2()
+    {
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('l, COUNT(downloads) AS HIDDEN downloadCount')
+            ->from('App\Entity\Level', 'l')
             ->leftJoin('l.downloadedBy', 'downloads')
             ->where('l.isUnlisted = 0')
-            ->groupBy('l.id');
-
-        if ($sortByDownloads)
-            $qb->orderBy('downloadCount', 'DESC');
-        else
-            $qb->orderBy('likeCount', 'DESC');
-
-        return $qb;
+            ->groupBy('l.id')
+            ->orderBy('downloadCount', 'DESC');
     }
 
     /**
@@ -156,7 +163,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function mostDownloadedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate(true);
+        $qb = $this->queryBuilderTemplate2();
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
 
