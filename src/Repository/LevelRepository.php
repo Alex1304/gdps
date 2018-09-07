@@ -250,13 +250,15 @@ class LevelRepository extends ServiceEntityRepository
     /**
      * Returns the most recent levels that meets the following requirements:
      * - the level has more than 25k objects
-     * - the level is original
+     * - the level is Long or XL
+     * - the level has LDM
      */
     public function magicLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
         $qb = $this->queryBuilderTemplate()
             ->andWhere('l.objectCount > 25000')
-            ->andWhere('l.original IS NULL')
+            ->andWhere('l.isLDM = 1')
+            ->andWhere('l.length > 2')
             ->orderBy('l.uploadedAt', 'DESC');
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
