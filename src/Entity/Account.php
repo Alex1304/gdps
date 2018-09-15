@@ -6,20 +6,30 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+use JMS\Serializer\Annotation as Serializer;
+
+use Symfony\Component\Security\Core\User\UserInterface;
+
 /**
  * @ORM\Entity(repositoryClass="App\Repository\AccountRepository")
+ *
+ * @Serializer\ExclusionPolicy("ALL")
  */
-class Account
+class Account implements UserInterface
 {
     /**
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $username;
 
@@ -30,26 +40,36 @@ class Account
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $email;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $youtube;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $twitter;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $twitch;
 
     /**
      * @ORM\Column(type="datetime")
+     *
+     * @Serializer\Expose
      */
     private $registered_at;
 
@@ -60,16 +80,22 @@ class Account
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $friendRequestPolicy;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $privateMessagePolicy;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $commentHistoryPolicy;
 
@@ -110,6 +136,9 @@ class Account
      */
     private $incomingFriendRequests;
 
+    private $roles;
+
+
     public function __construct()
     {
         $this->blockedBy = new ArrayCollection();
@@ -119,6 +148,8 @@ class Account
         $this->accountComments = new ArrayCollection();
         $this->outgoingFriendRequests = new ArrayCollection();
         $this->incomingFriendRequests = new ArrayCollection();
+
+        $this->roles = [ 'ROLE_USER' ];
     }
 
     public function getId(): ?int
@@ -465,5 +496,20 @@ class Account
         }
 
         return $this;
+    }
+
+    public function getSalt()
+    {
+        return null;
+    }
+
+    public function eraseCredentials()
+    {
+        return;
+    }
+
+    public function getRoles(): ?array
+    {
+        return [ 'ROLE_USER' ];
     }
 }

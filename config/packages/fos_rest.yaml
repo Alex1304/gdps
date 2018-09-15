@@ -1,0 +1,22 @@
+# Read the documentation: https://symfony.com/doc/master/bundles/FOSRestBundle/index.html
+fos_rest:
+    param_fetcher_listener: force
+    body_converter:
+        enabled: true
+
+    view:
+        formats: { json: true, xml: false, rss: false }
+        view_response_listener: true
+
+    serializer:
+        serialize_null: true
+
+    format_listener:
+        rules:
+            - { path: '^/', priorities: ['json'], fallback_format: 'json' }
+
+    exception:
+        enabled: true
+        codes:
+            { App\Exceptions\InvalidParametersException: 400, App\Exceptions\UnauthorizedException: 401, \Exception: 500 }
+        exception_controller: 'fos_rest.exception.controller:showAction'
