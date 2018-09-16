@@ -9,6 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,9 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
      */
     public function supports(Request $request)
     {
+    	if ($request->attributes->get('_route') === 'api_token_create')
+    		return false;
+
         return $request->headers->has('X-Auth-Token');
     }
 
@@ -56,7 +60,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
         $auth = $this->em->getRepository(Authorization::class)->findOneByToken($apiKey);
 
         if (!$auth)
-        	return;
+        	throw new CustomUserMessageAuthenticationException("Invalid token");
 
         return $auth->getUser();
     }
@@ -79,7 +83,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception)
     {
         $data = array(
-        	'status' => Response::HTTP_FORBIDDEN,
+        	'code' => Response::HTTP_FORBIDDEN,
             'message' => strtr($exception->getMessageKey(), $exception->getMessageData())
         );
 
@@ -92,7 +96,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
     public function start(Request $request, AuthenticationException $authException = null)
     {
         $data = array(
-        	'status' => Response::HTTP_UNAUTHORIZED,
+        	'code' => Response::HTTP_UNAUTHORIZED,
             'message' => 'Authentication Required'
         );
  

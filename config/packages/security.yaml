@@ -17,7 +17,9 @@ security:
             logout: ~
 
             guard:
+                entry_point: App\Services\PlainPasswordAuthenticator
                 authenticators:
+                    - App\Services\PlainPasswordAuthenticator
                     - App\Services\TokenAuthenticator
 
             stateless: true
@@ -40,3 +42,6 @@ security:
     access_control:
          - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
          - { path: ^/api/, roles: ROLE_USER }
+         - { path: ^/api/mod/, roles: ROLE_MOD }
+         - { path: ^/api/eldermod/, roles: ROLE_ELDERMOD }
+         - { path: ^/api/admin/, roles: ROLE_ADMIN }

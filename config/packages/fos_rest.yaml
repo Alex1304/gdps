@@ -13,10 +13,11 @@ fos_rest:
 
     format_listener:
         rules:
-            - { path: '^/', priorities: ['json'], fallback_format: 'json' }
+            - { path: '^/api/', priorities: ['json'], fallback_format: 'json' }
+            - { path: '^/', priorities: ['html'], fallback_format: 'html' }
 
     exception:
         enabled: true
         codes:
-            { App\Exceptions\InvalidParametersException: 400, App\Exceptions\UnauthorizedException: 401, \Exception: 500 }
+            { App\Exceptions\InvalidParametersException: 400, App\Exceptions\UnauthorizedException: 401 }
         exception_controller: 'fos_rest.exception.controller:showAction'

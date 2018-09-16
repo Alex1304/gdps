@@ -27,7 +27,7 @@ class Authorization
     private $id;
 
     /**
-     * @ORM\OneToOne(targetEntity="App\Entity\Account", cascade={"persist", "remove"})
+     * @ORM\OneToOne(targetEntity="App\Entity\Account")
      * @ORM\JoinColumn(nullable=false)
      *
      * @Serializer\Expose
