@@ -9,6 +9,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -57,12 +59,19 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
 
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
-    	return $userProvider->loadUserByUsername($credentials['username']);
+    	try {
+    		return $userProvider->loadUserByUsername($credentials['username']);
+    	} catch (UsernameNotFoundException $e) {
+    		throw new CustomUserMessageAuthenticationException($e->getMessage());
+    	}
     }
 
     public function checkCredentials($credentials, UserInterface $user)
     {
-        return password_verify($credentials['password'], $user->getPassword());
+        if (!password_verify($credentials['password'], $user->getPassword()))
+        	throw new CustomUserMessageAuthenticationException('Incorrect password');
+
+        return true;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, $providerKey)
