@@ -3,6 +3,7 @@
 namespace App\ApiController;
 
 use Symfony\Component\HttpFoundation\Request;
+//use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Security;
 use FOS\RestBundle\Controller\FOSRestController;
@@ -18,10 +19,7 @@ use App\Exceptions\UnauthorizedException;
 class RestApiController extends FOSRestController
 {
     /**
-     * @Rest\Post(
-     *     path="/token",
-     *     name="api_token_create"
-     * )
+     * @Rest\Post("/token", name="api_token_create")
      */
     public function createToken()
     {
@@ -29,22 +27,56 @@ class RestApiController extends FOSRestController
     }
 
     /**
-     * @Rest\Delete(
-     *     path="/token",
-     *     name="api_token_destroy"
-     * )
-     * 
+     * @Rest\Delete("/token", name="api_token_destroy")
      * @Rest\View
      */
-    public function destroyToken(Security $security)
+    public function destroyToken(Security $s)
     {
         $em = $this->getDoctrine()->getManager();
 
-        $auth = $em->getRepository(Authorization::class)->forUser($security->getUser()->getId());
+        $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getId());
 
         $em->remove($auth);
         $em->flush();
 
         return null;
+    }
+
+    /**
+     * @Rest\Put("/me/username", name="api_change_username")
+     * @Rest\View
+     *
+     * @ParamConverter("data", converter="fos_rest.request_body")
+     */
+    public function changeUsername(Security $s, Account $data)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $user = $s->getUser();
+
+        $user->setUsername($data->getUsername());
+
+        $em->persist($user);
+        $em->flush();
+
+        return $user;
+    }
+
+    /**
+     * @Rest\Put("/me/password", name="api_change_password")
+     * @Rest\View
+     */
+    public function changePassword(Request $r, Security $s)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $user = $s->getUser();
+
+        $data = $this->get('jms_serializer')->deserialize($r->getContent(), 'array', 'json');
+
+        $user->setPassword(password_hash($data['password'], PASSWORD_BCRYPT));
+
+        $em->persist($user);
+        $em->flush();
+
+        return $user;
     }
 }

@@ -4,9 +4,6 @@ security:
         gd_user:
             id: App\Services\GDUserProvider
 
-    encoders:
-        App\Entity\Account: bcrypt
-
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
