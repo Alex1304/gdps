@@ -18,6 +18,11 @@ fos_rest:
 
     exception:
         enabled: true
-        codes:
-            { App\Exceptions\InvalidParametersException: 400, App\Exceptions\UnauthorizedException: 401 }
         exception_controller: 'fos_rest.exception.controller:showAction'
+
+        codes:
+            App\Exceptions\InvalidParametersException: 400
+            App\Exceptions\UnauthorizedException: 401
+            
+        messages:
+            Symfony\Component\HttpKernel\Exception\BadRequestHttpException: true
