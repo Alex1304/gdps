@@ -3,7 +3,7 @@
 namespace App\ApiController;
 
 use Symfony\Component\HttpFoundation\Request;
-//use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Security;
 use FOS\RestBundle\Controller\FOSRestController;
@@ -15,6 +15,7 @@ use App\Entity\Authorization;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Exceptions\UnauthorizedException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 class RestApiController extends FOSRestController
 {
@@ -56,7 +57,12 @@ class RestApiController extends FOSRestController
         $user->setUsername($data->getUsername());
 
         $em->persist($user);
-        $em->flush();
+
+        try {
+            $em->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            throw new BadRequestHttpException("This username is already taken");
+        }
 
         return $user;
     }

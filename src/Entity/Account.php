@@ -12,6 +12,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\AccountRepository")
+ * @ORM\Table(
+ *     uniqueConstraints={
+ *         @ORM\UniqueConstraint(name="username_uq", columns={"username"}),
+ *         @ORM\UniqueConstraint(name="email_uq", columns={"email"})
+ *     }
+ * )
  *
  * @Serializer\ExclusionPolicy("ALL")
  */
@@ -27,7 +33,7 @@ class Account implements UserInterface
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
      * @Serializer\Expose
      */
@@ -39,7 +45,7 @@ class Account implements UserInterface
     private $password;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
      * @Serializer\Expose
      */

@@ -35,7 +35,7 @@ class Authorization
     private $user;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
      * @Serializer\Expose
      */
