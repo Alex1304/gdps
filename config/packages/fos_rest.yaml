@@ -25,4 +25,5 @@ fos_rest:
             App\Exceptions\UnauthorizedException: 401
             
         messages:
-            Symfony\Component\HttpKernel\Exception\BadRequestHttpException: true
+            App\Exceptions\InvalidParametersException: true
+            App\Exceptions\UnauthorizedException: true
