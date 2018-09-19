@@ -3,6 +3,8 @@ fos_rest:
     param_fetcher_listener: force
     body_converter:
         enabled: true
+        validate: true
+        validation_errors_argument: violations
 
     view:
         formats: { json: true, xml: false, rss: false }

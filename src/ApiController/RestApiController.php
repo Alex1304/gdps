@@ -8,6 +8,7 @@ use Symfony\Component\Security\Core\Security;
 use FOS\RestBundle\Controller\FOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 use App\Entity\Account;
 use App\Entity\Authorization;
@@ -49,8 +50,11 @@ class RestApiController extends FOSRestController
      *
      * @ParamConverter("data", converter="fos_rest.request_body")
      */
-    public function changeUsername(Security $s, Account $data)
+    public function changeUsername(Security $s, Account $data, ConstraintViolationList $violations)
     {
+        if (count($violations))
+            throw new InvalidParametersException($violations[0]->getMessage());
+
         $em = $this->getDoctrine()->getManager();
         $user = $s->getUser();
 

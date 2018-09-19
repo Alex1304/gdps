@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 use JMS\Serializer\Annotation as Serializer;
+use Symfony\Component\Validator\Constraints as Assert;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -35,6 +36,9 @@ class Account implements UserInterface
     /**
      * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
+     * @Assert\Regex("/^[a-z0-9 ]+$/i")
+     * @Assert\Length(min=3, max=16)
+     *
      * @Serializer\Expose
      */
     private $username;
@@ -46,6 +50,8 @@ class Account implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
+     *
+     * @Assert\Email
      *
      * @Serializer\Expose
      */
@@ -87,6 +93,8 @@ class Account implements UserInterface
     /**
      * @ORM\Column(type="integer")
      *
+     * @Assert\Range(min=0, max=1)
+     *
      * @Serializer\Expose
      */
     private $friendRequestPolicy;
@@ -94,12 +102,16 @@ class Account implements UserInterface
     /**
      * @ORM\Column(type="integer")
      *
+     * @Assert\Range(min=0, max=2)
+     *
      * @Serializer\Expose
      */
     private $privateMessagePolicy;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Assert\Range(min=0, max=2)
      *
      * @Serializer\Expose
      */
