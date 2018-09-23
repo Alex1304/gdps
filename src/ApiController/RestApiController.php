@@ -14,6 +14,7 @@ use App\Entity\Account;
 use App\Entity\Authorization;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
+use App\Services\StrictValidator;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\InvalidParametersException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -47,19 +48,16 @@ class RestApiController extends FOSRestController
     /**
      * @Rest\Put("/me/username", name="api_change_username")
      * @Rest\View
-     *
-     * @ParamConverter("data", converter="fos_rest.request_body")
+     * 
+     * @Rest\RequestParam(name="username")
      */
-    public function changeUsername(Security $s, Account $data, ConstraintViolationList $violations)
+    public function changeUsername(Security $s, StrictValidator $validator, $username)
     {
-        if (count($violations))
-            throw new InvalidParametersException($violations[0]->getMessage());
-
         $em = $this->getDoctrine()->getManager();
         $user = $s->getUser();
 
-        $user->setUsername($data->getUsername());
-
+        $user->setUsername($username);
+        $validator->validate($user);
         $em->persist($user);
 
         try {
@@ -74,16 +72,15 @@ class RestApiController extends FOSRestController
     /**
      * @Rest\Put("/me/password", name="api_change_password")
      * @Rest\View
+     *
+     * @Rest\RequestParam(name="password", requirements={"rule" = ".{6,72}", "error_message" = "Password must be between 6 and 72 characters"})
      */
-    public function changePassword(Request $r, Security $s)
+    public function changePassword(Security $s, $password)
     {
         $em = $this->getDoctrine()->getManager();
         $user = $s->getUser();
 
-        $data = $this->get('jms_serializer')->deserialize($r->getContent(), 'array', 'json');
-
-        $user->setPassword(password_hash($data['password'], PASSWORD_BCRYPT));
-
+        $user->setPassword(password_hash($password, PASSWORD_BCRYPT));
         $em->persist($user);
         $em->flush();
 

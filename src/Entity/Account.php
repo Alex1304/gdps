@@ -36,8 +36,10 @@ class Account implements UserInterface
     /**
      * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
-     * @Assert\Regex("/^[a-z0-9 ]+$/i")
-     * @Assert\Length(min=3, max=16)
+     * @Assert\NotBlank(message="Username must not be empty")
+     * @Assert\Regex("/^[a-z0-9 ]+$/i", message="Username must only contain alphanumeric and space characters")
+     * @Assert\Regex("/^[^ ].*|.*[^ ]$/", message="Username must not start or end with a space")
+     * @Assert\Length(min=3, max=16, minMessage="Username is too short (min. 3 characters)", maxMessage="Username is too long (max. 16 characters)")
      *
      * @Serializer\Expose
      */
@@ -45,13 +47,15 @@ class Account implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255)
+     * 
+     * @Assert\NotBlank(message="Password must not be empty")
      */
     private $password;
 
     /**
      * @ORM\Column(type="string", length=255, options={"collation":"utf8_unicode_ci"})
      *
-     * @Assert\Email
+     * @Assert\Email(message="Invalid email")
      *
      * @Serializer\Expose
      */
@@ -80,6 +84,8 @@ class Account implements UserInterface
 
     /**
      * @ORM\Column(type="datetime")
+     *
+     *@Assert\DateTime
      *
      * @Serializer\Expose
      */
