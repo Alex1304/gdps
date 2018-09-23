@@ -73,10 +73,13 @@ class RestApiController extends FOSRestController
      * @Rest\Put("/me/password", name="api_change_password")
      * @Rest\View
      *
-     * @Rest\RequestParam(name="password", requirements={"rule" = ".{6,72}", "error_message" = "Password must be between 6 and 72 characters"})
+     * @Rest\RequestParam(name="password")
      */
     public function changePassword(Security $s, $password)
     {
+        if (strlen($password) < 6 || strlen($password) > 72)
+            throw new InvalidParametersException("Password must be between 6 and 72 characters");
+
         $em = $this->getDoctrine()->getManager();
         $user = $s->getUser();
 
