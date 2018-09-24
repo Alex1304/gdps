@@ -44,16 +44,30 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
      */
     public function getCredentials(Request $request)
     {
-        return array(
+        $routesRequiringPasswordConfirmation = [
+            'api_update_credentials',
+        ];
+
+        if (in_array($request->attributes->get('_route'), $routesRequiringPasswordConfirmation)) {
+            if (!$request->request->has('current_password'))
+                throw new CustomUserMessageAuthenticationException("Password confirmation is required");
+
+            $password = $request->request->get('current_password');
+        }
+        else
+            $password = null;
+
+        return [
             'token' => $request->headers->get('X-Auth-Token'),
-        );
+            'password' => $password,
+        ];
     }
 
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
         $apiKey = $credentials['token'];
 
-        if (null === $apiKey) {
+        if ($apiKey === null) {
             return;
         }
 
@@ -67,10 +81,12 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
 
     public function checkCredentials($credentials, UserInterface $user)
     {
-        // check credentials - e.g. make sure the password is valid
-        // no credential check is needed in this case
+        if ($credentials['password'] === null)
+            return true;
 
-        // return true to cause authentication success
+        if (!password_verify($credentials['password'], $user->getPassword()))
+            throw new CustomUserMessageAuthenticationException("Current password is incorrect");
+
         return true;
     }
 
