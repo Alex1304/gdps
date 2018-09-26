@@ -15,6 +15,7 @@ use App\Entity\Authorization;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Services\StrictValidator;
+use App\Services\TokenGenerator;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\InvalidParametersException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -53,18 +54,82 @@ class RestApiController extends FOSRestController
      * @Rest\RequestParam(name="password", nullable=true, default=null)
      * @Rest\RequestParam(name="email", nullable=true, default=null)
      */
-    public function updateCredentials(Security $s, StrictValidator $v, $username, $password, $email)
+    public function updateCredentials(Security $s, StrictValidator $v, TokenGenerator $tokenGen, $username, $password, $email)
     {
+        $em = $this->getDoctrine()->getManager();
+
         $user = $s->getUser();
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
 
         $user->setUsername($username ?? $user->getUsername());
-        $user->setPassword($password ?? $user->getPassword());
+        $user->setPassword($password);
         $user->setEmail($email ?? $user->getEmail());
+        $auth->setToken($tokenGen->generate($user));
+        $auth->setUser($user);
 
         $v->validate($user);
+        $em->flush();
 
-        $this->getDoctrine()->getManager()->flush();
+        return [
+            'user' => $user,
+            'token' => $auth->getToken(),
+        ];
+    }
+    
+    /**
+     * @Rest\Put("/me/password", name="api_change_password")
+     * @Rest\View
+     *
+     * @Rest\RequestParam(name="password")
+     */
+    public function changePassword(Security $s, TokenGenerator $tokenGen, $password)
+    {
+        $em = $this->getDoctrine()->getManager();
 
-        return $user;
+        $user = $s->getUser();
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
+
+        $user->setPassword($password);
+        $auth->setToken($tokenGen->generate($user));
+        $auth->setUser($user);
+
+        $em->persist($auth);
+        $em->flush();
+
+        return [
+            'user' => $user,
+            'token' => $auth->getToken(),
+        ];
+    }
+
+    /**
+     * @Rest\Post("/public/forgot-password", name="api_forgot_password")
+     * @Rest\View
+     *
+     * @Rest\RequestParam(name="email")
+     */
+    public function forgotPassword(\Swift_Mailer $mailer, TokenGenerator $tokenGen, $email)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $user = $em->getRepository(Account::class)->findOneByEmail($email);
+
+        if (!$user)
+            throw new InvalidParametersException("Unknown email");
+
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
+        $auth->setToken($tokenGen->generate($user));
+        $auth->setUser($user);
+        $em->persist($auth);
+        $em->flush();
+
+        $link = getenv('DASHBOARD_ROOT_URL') . '/recover-password?token=' . $auth->getToken();
+
+        $message = (new \Swift_Message('Reset password'))
+            ->setTo($email)
+            ->setBody("Hello,\n\nYour username is: " . $user->getUsername() . ".\nTo reset your password, follow this link: " . $link, 'text/plain');
+
+        $mailer->send($message);
+
+        return null;
     }
 }

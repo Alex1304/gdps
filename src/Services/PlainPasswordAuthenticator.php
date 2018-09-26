@@ -19,18 +19,21 @@ use JMS\Serializer\SerializerInterface;
 use App\Entity\Authorization;
 use App\Entity\Account;
 use App\Services\Base64URL;
+use App\Services\TokenGenerator;
 
 class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
 {
 	private $em;
 	private $serializer;
 	private $b64;
+    private $tokenGen;
 
-	public function __construct(EntityManagerInterface $em, SerializerInterface $serializer, Base64URL $b64)
+	public function __construct(EntityManagerInterface $em, SerializerInterface $serializer, Base64URL $b64, TokenGenerator $tokenGen)
 	{
 		$this->em = $em;
 		$this->serializer = $serializer;
 		$this->b64 = $b64;
+        $this->tokenGen = $tokenGen;
 	}
 
     /**
@@ -89,7 +92,7 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
         	$status = Response::HTTP_CREATED;
             $auth = new Authorization();
             $auth->setUser($account);
-            $auth->setToken($this->generateToken($account, $this->b64));
+            $auth->setToken($this->tokenGen->generate($account, $this->b64));
 
             $em->persist($auth);
             $em->flush();
@@ -133,17 +136,4 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
     {
         return false;
     }
-
-	private function generateToken($account, $b64)
-	{
-		$length = 32;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-	    $charactersLength = strlen($characters);
-	    $randomString = '';
-	    for ($i = 0; $i < $length; $i++) {
-	        $randomString .= $characters[rand(0, $charactersLength - 1)];
-	    }
-
-		return str_replace('=', '', $b64->encode(time()) . '.' . $b64->encode($account->getId())) . '.' . $randomString;
-	}
 }
