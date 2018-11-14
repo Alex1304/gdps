@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Player;
+use App\Entity\Account;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -74,6 +75,12 @@ class PlayerRepository extends ServiceEntityRepository
         }
 
         return $player;
+    }
+
+    public function findPlayerWithAccountID($accountID)
+    {
+        $account = $this->getEntityManager()->getRepository(Account::class)->find($accountID);
+        return $account ? $account->getPlayer() : null;
     }
 
     public function globalRank(Player $player)

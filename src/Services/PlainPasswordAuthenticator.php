@@ -43,12 +43,16 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
      */
     public function supports(Request $request)
     {
-    	if ($request->attributes->get('_route') !== 'api_token_create')
+    	if ($request->attributes->get('_route') !== 'api_token_create' &&
+            $request->attributes->get('_route') !== 'account_login')
     		return false;
 
-		$credentials = $this->serializer->deserialize($request->getContent(), 'array', 'json');
-
-		return isset($credentials['username']) && isset($credentials['password']);
+        if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded') {
+            return $request->request->has('userName') && $request->request->has('password');
+        } else {
+            $credentials = $this->serializer->deserialize($request->getContent(), 'array', 'json');
+            return isset($credentials['username']) && isset($credentials['password']);
+        }
     }
 
     /**

@@ -20,7 +20,7 @@ fos_rest:
 
     exception:
         enabled: true
-        exception_controller: 'fos_rest.exception.controller:showAction'
+#        exception_controller: 'fos_rest.exception.controller:showAction'
 
         codes:
             App\Exceptions\InvalidParametersException: 400

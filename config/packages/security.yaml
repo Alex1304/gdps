@@ -27,8 +27,14 @@ security:
             stateless: true
 
         main:
-            anonymous: ~
+            anonymous: true
             logout: ~
+
+            guard:
+                entry_point: App\Services\PlainPasswordAuthenticator
+                authenticators: 
+                    - App\Services\PlainPasswordAuthenticator
+                    - App\Services\GJPAuthenticator
 
 
             # activate different ways to authenticate

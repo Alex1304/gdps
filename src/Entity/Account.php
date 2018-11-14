@@ -9,8 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation as Serializer;
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Symfony\Component\Security\Core\User\UserInterface;
-
 /**
  * @ORM\Entity(repositoryClass="App\Repository\AccountRepository")
  * @ORM\Table(
@@ -22,7 +20,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  *
  * @Serializer\ExclusionPolicy("ALL")
  */
-class Account implements UserInterface
+class Account
 {
     /**
      * @ORM\Id()
@@ -160,9 +158,6 @@ class Account implements UserInterface
      */
     private $incomingFriendRequests;
 
-    private $roles;
-
-
     public function __construct()
     {
         $this->blockedBy = new ArrayCollection();
@@ -172,8 +167,6 @@ class Account implements UserInterface
         $this->accountComments = new ArrayCollection();
         $this->outgoingFriendRequests = new ArrayCollection();
         $this->incomingFriendRequests = new ArrayCollection();
-
-        $this->roles = [ 'ROLE_USER' ];
     }
 
     public function getId(): ?int
@@ -520,20 +513,5 @@ class Account implements UserInterface
         }
 
         return $this;
-    }
-
-    public function getSalt()
-    {
-        return null;
-    }
-
-    public function eraseCredentials()
-    {
-        return;
-    }
-
-    public function getRoles(): ?array
-    {
-        return [ 'ROLE_USER' ];
     }
 }

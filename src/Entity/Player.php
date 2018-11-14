@@ -6,11 +6,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+use Symfony\Component\Security\Core\User\UserInterface;
+
 /**
  * @ORM\Entity(repositoryClass="App\Repository\PlayerRepository")
  * @ORM\Table(name="player", indexes={@ORM\Index(name="leaderboards_idx", columns={"stars"}), @ORM\Index(name="usersearch_idx", columns={"name"}), @ORM\Index(name="cp_leaderboard_idx", columns={"creator_points"})})
  */
-class Player
+class Player implements UserInterface
 {
     /**
      * @ORM\Id()
@@ -826,5 +828,34 @@ class Player
         }
 
         return $this;
+    }
+
+
+    public function getUsername(): ?string
+    {
+        return $this->getAccount() ? $this->getAccount()->getUsername() : null;
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->getAccount() ? $this->getAccount()->getPassword() : null;
+    }
+
+    public function getSalt()
+    {
+        return null;
+    }
+
+    public function eraseCredentials()
+    {
+        return;
+    }
+
+    public function getRoles(): array
+    {
+        if (!$this->getAccount())
+            return [ 'ROLE_UNREGISTERED_USER' ];
+
+        return [ 'ROLE_USER' ];
     }
 }
