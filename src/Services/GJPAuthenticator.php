@@ -14,7 +14,7 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 use Doctrine\ORM\EntityManagerInterface;
 
-use App\Entity\Account;
+use App\Entity\Player;
 
 class GJPAuthenticator extends AbstractGuardAuthenticator
 {

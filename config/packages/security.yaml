@@ -35,6 +35,7 @@ security:
                 authenticators: 
                     - App\Services\PlainPasswordAuthenticator
                     - App\Services\GJPAuthenticator
+                    - App\Services\UnregisteredAuthenticator
 
 
             # activate different ways to authenticate

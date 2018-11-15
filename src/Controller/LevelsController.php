@@ -3,7 +3,8 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Security;
+use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -27,31 +28,48 @@ class LevelsController extends AbstractController
     const LEVELS_PER_PAGE = 10;
 
     /**
-     * @Route("/uploadGJLevel21.php", name="upload_level")
+     * @Rest\Post("/uploadGJLevel21.php", name="upload_level")
+     *
+     * @Rest\RequestParam(name="original", nullable=true, default=0)
+     * @Rest\RequestParam(name="levelID", nullable=true, default=0)
+     * @Rest\RequestParam(name="levelName")
+     * @Rest\RequestParam(name="unlisted", nullable=true, default=0)
+     * @Rest\RequestParam(name="levelDesc", nullable=true, default="")
+     * @Rest\RequestParam(name="levelString")
+     * @Rest\RequestParam(name="audioTrack", nullable=true, default=0)
+     * @Rest\RequestParam(name="songID", nullable=true, default=0)
+     * @Rest\RequestParam(name="gameVersion")
+     * @Rest\RequestParam(name="requestedStars", nullable=true, default=0)
+     * @Rest\RequestParam(name="levelLength")
+     * @Rest\RequestParam(name="ldm", nullable=true, default=0)
+     * @Rest\RequestParam(name="password", nullable=true, default=0)
+     * @Rest\RequestParam(name="objects", nullable=true, default=0)
+     * @Rest\RequestParam(name="extraString")
+     * @Rest\RequestParam(name="twoPlayer", nullable=true, default=0)
+     * @Rest\RequestParam(name="coins", nullable=true, default=0)
      */
-    public function uploadLevel(Request $r, PlayerManager $pm, Base64URL $b64): Response
+    public function uploadLevel(Security $s, Base64URL $b64, $original, $levelID, $levelName, $unlisted, $levelDesc, $levelString, $audioTrack, $songID, $gameVersion, $requestedStars, $levelLength, $ldm, $password, $objects, $extraString, $twoPlayer, $coins): Response
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
 
-        if (!$player)
+        if (!$s->getUser())
             return new Response('-1');
 
         $level = null;
-        $original = $r->request->get('original') > 0 ? $em->getRepository(Level::class)->find($r->request->get('original')) : null;
+        $original = $original > 0 ? $em->getRepository(Level::class)->find($original) : null;
 
-        if ($r->request->get('levelID') == 0) {
-            $levelWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($player->getId(), $r->request->get('levelName'));
+        if ($levelID == 0) {
+            $levelWithSameName = $em->getRepository(Level::class)->levelWithSameNameByCreator($s->getUser()->getId(), $levelName);
             if (!$levelWithSameName) {
                 $level = new Level();
-                $level->setCreator($player);
+                $level->setCreator($s->getUser());
                 $level->setVersion(0); // Will be incremented anyway at line 79
                 $level->setStars(0);
                 $level->setFeatureScore(0);
                 $level->setIsEpic(0);
-                $level->setName($r->request->get('levelName'));
+                $level->setName($levelName);
                 $level->setUploadedAt(new \DateTime());
-                $level->setIsUnlisted($r->request->get('unlisted') ?? 0);
+                $level->setIsUnlisted($unlisted ?? 0);
                 $level->setOriginal($original);
                 $level->setDifficulty(0);
                 $level->setDemonDifficulty(0);
@@ -63,31 +81,31 @@ class LevelsController extends AbstractController
                 $level = $levelWithSameName;
             }
         } else
-            $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+            $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level)
             return new Response('-1');
 
-        $level->setDescription($r->request->get('levelDesc') ?? '');
-        if (substr($r->request->get('levelString'), 0, 3) == 'kS1')
-            $level->setData($b64->encode(gzcompress($r->request->get('levelString'))));
+        $level->setDescription($levelDesc ?? '');
+        if (substr($levelString, 0, 3) == 'kS1')
+            $level->setData($b64->encode(gzcompress($levelString)));
         else
-            $level->setData($r->request->get('levelString'));
-        $level->setAudioTrack($r->request->get('audioTrack'));
-        $level->setCustomSongID($r->request->get('songID'));
-        $level->setGameVersion($r->request->get('gameVersion'));
+            $level->setData($levelString);
+        $level->setAudioTrack($audioTrack);
+        $level->setCustomSongID($songID);
+        $level->setGameVersion($gameVersion);
         $level->setVersion($level->getVersion() + 1);
-        $level->setRequestedStars($r->request->get('requestedStars') ?? 0);
+        $level->setRequestedStars($requestedStars ?? 0);
         $level->setLastUpdatedAt(new \DateTime());
-        $level->setLength($r->request->get('levelLength'));
-        $level->setIsLDM($r->request->get('ldm') ?? 0);
-        $level->setPassword($r->request->get('password') ?? 0);
-        $level->setObjectCount($r->request->get('objects') ?? 0);
-        $level->setExtraString($r->request->get('extraString'));
-        $level->setIsTwoPlayer($r->request->get('twoPlayer') ?? 0);
-        $level->setCoins($r->request->get('coins'));
+        $level->setLength($levelLength);
+        $level->setIsLDM($ldm ?? 0);
+        $level->setPassword($password ?? 0);
+        $level->setObjectCount($objects ?? 0);
+        $level->setExtraString($extraString);
+        $level->setIsTwoPlayer($twoPlayer ?? 0);
+        $level->setCoins($coins);
 
-        $em->persist($player);
+        $em->persist($s->getUser());
         $em->persist($level);
         $em->flush();
 
@@ -95,12 +113,31 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/getGJLevels21.php", name="get_levels")
+     * @Rest\Post("/getGJLevels21.php", name="get_levels")
+     *
+     * @Rest\RequestParam(name="type", nullable=true, default=0)
+     * @Rest\RequestParam(name="str", nullable=true, default="-")
+     * @Rest\RequestParam(name="diff", nullable=true, default=null)
+     * @Rest\RequestParam(name="len", nullable=true, default=null)
+     * @Rest\RequestParam(name="page", nullable=true, default=0)
+     * @Rest\RequestParam(name="uncompleted", nullable=true, default=0)
+     * @Rest\RequestParam(name="onlyCompleted", nullable=true, default=0)
+     * @Rest\RequestParam(name="featured", nullable=true, default=0)
+     * @Rest\RequestParam(name="original", nullable=true, default=0)
+     * @Rest\RequestParam(name="twoPlayer", nullable=true, default=0)
+     * @Rest\RequestParam(name="coins", nullable=true, default=0)
+     * @Rest\RequestParam(name="epic", nullable=true, default=0)
+     * @Rest\RequestParam(name="demonFilter", nullable=true, default=null)
+     * @Rest\RequestParam(name="star", nullable=true, default=0)
+     * @Rest\RequestParam(name="noStar", nullable=true, default=null)
+     * @Rest\RequestParam(name="song", nullable=true, default=null)
+     * @Rest\RequestParam(name="customSong", nullable=true, default=null)
+     * @Rest\RequestParam(name="completedLevels", nullable=true, default=null)
+     * @Rest\RequestParam(name="followed", nullable=true, default=null)
      */
-    public function getLevels(Request $r, PlayerManager $pm, SongProvider $sp, HashGenerator $hg): Response
+    public function getLevels(Security $s, SongProvider $sp, HashGenerator $hg, $type, $str, $diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, $followed): Response
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
 
         $levels = [];
         $songs = [];
@@ -120,55 +157,55 @@ class LevelsController extends AbstractController
         // 12 : followed
         // 13 : friends
         // 16 : hall of fame
-        switch ($r->request->get('type')) {
+        switch ($type) {
             case 0:
-                $query = $em->getRepository(Level::class)->searchLevels($r->request->get('str'), $r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->searchLevels($str, $diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 1:
-                $query = $em->getRepository(Level::class)->mostDownloadedLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->mostDownloadedLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 2:
-                $query = $em->getRepository(Level::class)->mostLikedLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->mostLikedLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 3:
-                $query = $em->getRepository(Level::class)->trendingLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->trendingLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 4:
-                $query = $em->getRepository(Level::class)->recentLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->recentLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 5:
-                $query = $em->getRepository(Level::class)->levelsByUser($r->request->get('str'), $player, $r->request->get('page'));
+                $query = $em->getRepository(Level::class)->levelsByUser($str, $s->getUser(), $page);
                 break;
             case 6:
-                $query = $em->getRepository(Level::class)->featuredLevels($r->request->get('page'));
+                $query = $em->getRepository(Level::class)->featuredLevels($page);
                 break;
             case 7:
-                $query = $em->getRepository(Level::class)->magicLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->magicLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 10:
-                $query = $em->getRepository(Level::class)->mapPackLevels($r->request->get('str'), $r->request->get('page'));
+                $query = $em->getRepository(Level::class)->mapPackLevels($str, $page);
                 break;
             case 11:
-                $query = $em->getRepository(Level::class)->awardedLevels($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'));
+                $query = $em->getRepository(Level::class)->awardedLevels($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
                 break;
             case 12:
-                $query = $em->getRepository(Level::class)->levelsByFollowed($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'), $r->request->get('followed'));
+                $query = $em->getRepository(Level::class)->levelsByFollowed($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, $followed);
                 break;
             case 13:
-                if (!$player->getAccount())
+                if (!$s->getUser()->getAccount())
                     return new Response('-1');
 
-                $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
+                $friends = $em->getRepository(Friend::class)->friendsFor($s->getUser()->getAccount()->getId());
                 $friendsArray = [];
                 foreach ($friends as $friend) {
-                    $other = $friend->getA()->getId() === $player->getAccount()->getId() ? $friend->getB() : $friend->getA();
+                    $other = $friend->getA()->getId() === $s->getUser()->getAccount()->getId() ? $friend->getB() : $friend->getA();
                     $friendsArray[] = $other->getId();
                 }
 
-                $query = $em->getRepository(Level::class)->levelsByFollowed($r->request->get('diff'), $r->request->get('len'), $r->request->get('page'), $r->request->get('uncompleted'), $r->request->get('onlyCompleted'), $r->request->get('featured'), $r->request->get('original'), $r->request->get('twoPlayer'), $r->request->get('coins'), $r->request->get('epic'), $r->request->get('demonFilter'), $r->request->get('star'), $r->request->get('noStar'), $r->request->get('song'), $r->request->get('customSong'), $r->request->get('completedLevels'), implode(',', $friendsArray));
+                $query = $em->getRepository(Level::class)->levelsByFollowed($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, implode(',', $friendsArray));
                 break;
             case 16:
-                $query = $em->getRepository(Level::class)->hallOfFame($r->request->get('page'));
+                $query = $em->getRepository(Level::class)->hallOfFame($page);
                 break;
             default:
                 return new Response('-1');
@@ -201,42 +238,46 @@ class LevelsController extends AbstractController
             'songs' => $songs,
             'total' => $total,
             'creators' => $creators,
-            'page' => $r->request->get('page'),
+            'page' => $page,
             'count' => self::LEVELS_PER_PAGE,
             'hash' => $hg->generateForLevelsArray($levels),
         ]);
     }
 
     /**
-     * @Route("/getGJSongInfo.php", name="get_song_info")
+     * @Rest\Post("/getGJSongInfo.php", name="get_song_info")
+     *
+     * @Rest\RequestParam(name="songID")
      */
-    public function getSongInfo(Request $r, SongProvider $sp): Response
+    public function getSongInfo(SongProvider $sp, $songID): Response
     {
-        $song = $sp->fetchSong($r->request->get('songID'));
+        $song = $sp->fetchSong($songID);
 
         if ($song == '-1' || $song == '-2')
             return new Response($song);
 
         return $this->render('levels/song_info.html.twig', [
-            'song' => $sp->fetchSong($r->request->get('songID')),
+            'song' => $sp->fetchSong($songID),
         ]);
     }
 
     /**
-     * @Route("/downloadGJLevel22.php", name="download_level")
+     * @Rest\Post("/downloadGJLevel22.php", name="download_level")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="inc", nullable=true, default=0)
      */
-    public function downloadLevel(Request $r, PlayerManager $pm, SongProvider $sp, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf): Response
+    public function downloadLevel(Security $s, SongProvider $sp, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf, $levelID, $inc): Response
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
 
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level)
             return new Response('-1');
 
-        if ($player && $r->request->get('inc')) {
-            $player->addDownloadedLevel($level);
+        if ($s->getUser() && $inc) {
+            $s->getUser()->addDownloadedLevel($level);
             $em->persist($player);
             $em->persist($level);
             $em->flush();
@@ -252,7 +293,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/likeGJItem211.php", name="like_item")
+     * @Rest\Post("/likeGJItem211.php", name="like_item")
      */
     public function likeItem(Request $r, PlayerManager $pm): Response
     {
@@ -313,7 +354,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/deleteGJLevelUser20.php", name="delete_level")
+     * @Rest\Post("/deleteGJLevelUser20.php", name="delete_level")
      */
     public function deleteLevel(Request $r, PlayerManager $pm): Response
     {
@@ -335,7 +376,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/rateGJStars211.php", name="vote_level_stars")
+     * @Rest\Post("/rateGJStars211.php", name="vote_level_stars")
      */
     public function voteLevelStars(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
     {
@@ -368,7 +409,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/rateGJDemon21.php", name="vote_level_demon")
+     * @Rest\Post("/rateGJDemon21.php", name="vote_level_demon")
      */
     public function voteLevelDemon(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
     {
@@ -401,7 +442,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/updateGJDesc20.php", name="update_level_desc")
+     * @Rest\Post("/updateGJDesc20.php", name="update_level_desc")
      */
     public function updateLevelDesc(Request $r, PlayerManager $pm): Response
     {
@@ -423,7 +464,7 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Route("/getGJLevelScores211.php", name="get_level_scores")
+     * @Rest\Post("/getGJLevelScores211.php", name="get_level_scores")
      */
     public function getLevelScores(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
     {
