@@ -48,12 +48,12 @@ class LevelsController extends AbstractController
      * @Rest\RequestParam(name="twoPlayer", nullable=true, default=0)
      * @Rest\RequestParam(name="coins", nullable=true, default=0)
      */
-    public function uploadLevel(Security $s, Base64URL $b64, $original, $levelID, $levelName, $unlisted, $levelDesc, $levelString, $audioTrack, $songID, $gameVersion, $requestedStars, $levelLength, $ldm, $password, $objects, $extraString, $twoPlayer, $coins): Response
+    public function uploadLevel(Security $s, Base64URL $b64, $original, $levelID, $levelName, $unlisted, $levelDesc, $levelString, $audioTrack, $songID, $gameVersion, $requestedStars, $levelLength, $ldm, $password, $objects, $extraString, $twoPlayer, $coins)
     {
         $em = $this->getDoctrine()->getManager();
 
         if (!$s->getUser())
-            return new Response('-1');
+            return -1;
 
         $level = null;
         $original = $original > 0 ? $em->getRepository(Level::class)->find($original) : null;
@@ -84,7 +84,7 @@ class LevelsController extends AbstractController
             $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level)
-            return new Response('-1');
+            return -1;
 
         $level->setDescription($levelDesc ?? '');
         if (substr($levelString, 0, 3) == 'kS1')
@@ -135,7 +135,7 @@ class LevelsController extends AbstractController
      * @Rest\RequestParam(name="completedLevels", nullable=true, default=null)
      * @Rest\RequestParam(name="followed", nullable=true, default=null)
      */
-    public function getLevels(Security $s, SongProvider $sp, HashGenerator $hg, $type, $str, $diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, $followed): Response
+    public function getLevels(Security $s, SongProvider $sp, HashGenerator $hg, $type, $str, $diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, $followed)
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -193,7 +193,7 @@ class LevelsController extends AbstractController
                 break;
             case 13:
                 if (!$s->getUser()->getAccount())
-                    return new Response('-1');
+                    return -1;
 
                 $friends = $em->getRepository(Friend::class)->friendsFor($s->getUser()->getAccount()->getId());
                 $friendsArray = [];
@@ -208,14 +208,14 @@ class LevelsController extends AbstractController
                 $query = $em->getRepository(Level::class)->hallOfFame($page);
                 break;
             default:
-                return new Response('-1');
+                return -1;
         }
 
         $levels = $query['result'];
         $total = $query['total'];
 
         if (!count($levels))
-            return new Response('-1');
+            return -1;
 
         foreach ($levels as $level) {
             if ($level->getCustomSongID() > 0) {
@@ -249,7 +249,7 @@ class LevelsController extends AbstractController
      *
      * @Rest\RequestParam(name="songID")
      */
-    public function getSongInfo(SongProvider $sp, $songID): Response
+    public function getSongInfo(SongProvider $sp, $songID)
     {
         $song = $sp->fetchSong($songID);
 
@@ -267,18 +267,18 @@ class LevelsController extends AbstractController
      * @Rest\RequestParam(name="levelID")
      * @Rest\RequestParam(name="inc", nullable=true, default=0)
      */
-    public function downloadLevel(Security $s, SongProvider $sp, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf, $levelID, $inc): Response
+    public function downloadLevel(Security $s, SongProvider $sp, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf, $levelID, $inc)
     {
         $em = $this->getDoctrine()->getManager();
 
         $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level)
-            return new Response('-1');
+            return -1;
 
-        if ($s->getUser() && $inc) {
+        if ($inc) {
             $s->getUser()->addDownloadedLevel($level);
-            $em->persist($player);
+            $em->persist($s->getUser());
             $em->persist($level);
             $em->flush();
         }
@@ -294,22 +294,23 @@ class LevelsController extends AbstractController
 
     /**
      * @Rest\Post("/likeGJItem211.php", name="like_item")
+     *
+     * @Rest\RequestParam(name="type")
+     * @Rest\RequestParam(name="itemID")
+     * @Rest\RequestParam(name="like")
      */
-    public function likeItem(Request $r, PlayerManager $pm): Response
+    public function likeItem(Security $s, $type, $itemID, $like)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player)
-            return new Response('-1');
-
-        switch ($r->request->get('type')) {
+        switch ($type) {
             case 1:
-                $level = $em->getRepository(Level::class)->find($r->request->get('itemID'));
+                $level = $em->getRepository(Level::class)->find($itemID);
                 if (!$level)
-                    return new Response('-1');
+                    return -1;
 
-                if ($r->request->get('like')) {
+                if ($like) {
                     $player->addLikedLevel($level);
                     $player->removeDislikedLevel($level);
                 } else {
@@ -318,11 +319,11 @@ class LevelsController extends AbstractController
                 }
                 break;
             case 2:
-                $comment = $em->getRepository(LevelComment::class)->find($r->request->get('itemID'));
+                $comment = $em->getRepository(LevelComment::class)->find($itemID);
                 if (!$comment)
-                    return new Response('-1');
+                    return -1;
 
-                if ($r->request->get('like')) {
+                if ($like) {
                     $player->addLikedLevelComment($comment);
                     $player->removeDislikedLevelComment($comment);
                 } else {
@@ -331,11 +332,11 @@ class LevelsController extends AbstractController
                 }
                 break;
             case 3:
-                $comment = $em->getRepository(AccountComment::class)->find($r->request->get('itemID'));
+                $comment = $em->getRepository(AccountComment::class)->find($itemID);
                 if (!$comment)
-                    return new Response('-1');
+                    return -1;
 
-                if ($r->request->get('like')) {
+                if ($like) {
                     $player->addLikedAccountComment($comment);
                     $player->removeDislikedAccountComment($comment);
                 } else {
@@ -344,51 +345,49 @@ class LevelsController extends AbstractController
                 }
                 break;
             default:
-                return new Response('-1');
+                return -1;
         }
 
         $em->persist($player);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
      * @Rest\Post("/deleteGJLevelUser20.php", name="delete_level")
+     *
+     * @Rest\RequestParam(name="levelID")
      */
-    public function deleteLevel(Request $r, PlayerManager $pm): Response
+    public function deleteLevel(Security $s, $levelID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
 
-        if (!$player)
-            return new Response('-1');
-
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level || $level->getStars() > 0 || $level->getHasCoinsVerified())
-            return new Response('-1');
+            return -1;
 
-        $player->removeLevel($level);
+        $s->getUser()->removeLevel($level);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
      * @Rest\Post("/rateGJStars211.php", name="vote_level_stars")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="stars")
      */
-    public function voteLevelStars(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
+    public function voteLevelStars(Security $s, DifficultyCalculator $dc, $levelID, $stars)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player)
-            return new Response('-1');
-
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
         if (!$level || $level->getStars() > 0)
-            return new Response('-1');
+            return -1;
 
         $vote = $em->getRepository(LevelStarVote::class)->findPlayerVoteForLevel($player->getId(), $level->getId());
 
@@ -397,7 +396,7 @@ class LevelsController extends AbstractController
 
         $vote->setPlayer($player);
         $vote->setLevel($level);
-        $vote->setStarValue($r->request->get('stars'));
+        $vote->setStarValue($stars);
 
         $em->persist($vote);
         $em->persist($player);
@@ -405,23 +404,23 @@ class LevelsController extends AbstractController
 
         $dc->updateDifficulty($level);
 
-        return new Response('1');
+        return 1;
     }
 
     /**
      * @Rest\Post("/rateGJDemon21.php", name="vote_level_demon")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="rating")
      */
-    public function voteLevelDemon(Request $r, PlayerManager $pm, DifficultyCalculator $dc): Response
+    public function voteLevelDemon(Security $s, DifficultyCalculator $dc, $levelID, $rating)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player)
-            return new Response('-1');
-
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
         if (!$level || !$level->getIsDemon())
-            return new Response('-1');
+            return -1;
 
         $vote = $em->getRepository(LevelDemonVote::class)->findPlayerVoteForLevel($player->getId(), $level->getId());
 
@@ -430,7 +429,7 @@ class LevelsController extends AbstractController
 
         $vote->setPlayer($player);
         $vote->setLevel($level);
-        $vote->setDemonValue($r->request->get('rating'));
+        $vote->setDemonValue($rating);
 
         $em->persist($vote);
         $em->persist($player);
@@ -438,50 +437,57 @@ class LevelsController extends AbstractController
 
         $dc->updateDemonDifficulty($level);
 
-        return new Response('1');
+        return 1;
     }
 
     /**
      * @Rest\Post("/updateGJDesc20.php", name="update_level_desc")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="levelDesc", nullable=true, default="")
      */
-    public function updateLevelDesc(Request $r, PlayerManager $pm): Response
+    public function updateLevelDesc(Security $s, $levelID, $levelDesc)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
         if (!$player)
-            return new Response('-1');
+            return -1;
 
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level || $level->getCreator()->getId() !== $player->getId())
-            return new Response('-1');
+            return -1;
 
-        $level->setDescription($r->request->get('levelDesc'));
+        $level->setDescription($levelDesc);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
      * @Rest\Post("/getGJLevelScores211.php", name="get_level_scores")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="percent")
+     * @Rest\RequestParam(name="type")
+     * @Rest\RequestParam(name="s9")
      */
-    public function getLevelScores(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    public function getLevelScores(Security $s, TimeFormatter $tf, $levelID, $percent, $type, $s9)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
         if (!$player || !$player->getAccount())
-            return new Response('-1');
+            return -1;
 
-        $level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+        $level = $em->getRepository(Level::class)->find($levelID);
 
         if (!$level)
-            return new Response('-1');
+            return -1;
 
         $myScore = $em->getRepository(LevelScore::class)->findExistingScore($player->getAccount()->getId(), $level->getId());
-        $percent = $r->request->get('percent');
-        $coins = $r->request->get('s9') - 5819;
+        $coins = $s9 - 5819;
 
         if (!$myScore && $percent > 0) {
             $myScore = new LevelScore();
@@ -499,7 +505,7 @@ class LevelsController extends AbstractController
 
         $em->flush();
 
-        switch ($r->request->get('type')) {
+        switch ($type) {
             case 0:
                 $scores = $em->getRepository(LevelScore::class)->friendsLeaderboard($player->getAccount()->getId(), $level->getId());
                 break;
@@ -510,11 +516,11 @@ class LevelsController extends AbstractController
                 $scores = $em->getRepository(LevelScore::class)->weekLeaderboard($level->getId());
                 break;
             default:
-                return new Response('-1');
+                return -1;
         }
 
         if (!count($scores))
-            return new Response('-1');
+            return -1;
 
         return $this->render('levels/get_scores.html.twig', [
             'scores' => $scores,

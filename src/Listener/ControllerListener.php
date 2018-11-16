@@ -3,14 +3,17 @@
 namespace App\Listener;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
+use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 use App\Exceptions\InvalidParametersException;
 use App\Services\UserPassword;
 use App\Services\StrictValidator;
 
-class ApiControllerListener implements EventSubscriberInterface
+class ControllerListener implements EventSubscriberInterface
 {
 	private $v;
 
@@ -26,7 +29,15 @@ class ApiControllerListener implements EventSubscriberInterface
 				['throwExceptionIfViolation', -100],
 				['validatePasswordParam', -101],
 			],
+			'kernel.view' => [
+				['intResponse', -102],
+			]
 		];
+	}
+
+	private static function isApiRoute(Request $r)
+	{
+		return substr($r->attributes->get('_route'), 0, 4) == 'api_';
 	}
 
 	public function throwExceptionIfViolation(FilterControllerEvent $event)
@@ -41,12 +52,24 @@ class ApiControllerListener implements EventSubscriberInterface
 	{
 		$r = $event->getRequest();
 
-		if (!$r->attributes->get('password'))
+		if (!static::isApiRoute($r) || !$r->attributes->get('password'))
 			return;
 
 		$up = new UserPassword();
 		$up->setPassword($r->attributes->get('password'));
 		$this->v->validate($up);
 		$r->attributes->set('password', $up->getHashedPassword());
+	}
+
+	public function intResponse(GetResponseForControllerResultEvent $event)
+	{
+		if (static::isApiRoute($event->getRequest())) // Shouldn't affect API routes
+			return;
+
+		$val = $event->getControllerResult();
+
+		if (is_numeric($val)) {
+			$event->setResponse(new Response($val));
+		}
 	}
 }

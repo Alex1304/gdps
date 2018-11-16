@@ -3,7 +3,8 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Security;
+use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,79 +15,94 @@ use App\Services\PlayerManager;
 class LeaderboardsController extends AbstractController
 {
     /**
-     * @Route("/updateGJUserScore22.php", name="update_stats")
+     * @Rest\Post("/updateGJUserScore22.php", name="update_stats")
+     *
+     * @Rest\RequestParam(name="userName")
+     * @Rest\RequestParam(name="stars")
+     * @Rest\RequestParam(name="demons")
+     * @Rest\RequestParam(name="diamonds")
+     * @Rest\RequestParam(name="icon")
+     * @Rest\RequestParam(name="color1")
+     * @Rest\RequestParam(name="color2")
+     * @Rest\RequestParam(name="iconType")
+     * @Rest\RequestParam(name="coins")
+     * @Rest\RequestParam(name="userCoins")
+     * @Rest\RequestParam(name="special")
+     * @Rest\RequestParam(name="accIcon")
+     * @Rest\RequestParam(name="accShip")
+     * @Rest\RequestParam(name="accBall")
+     * @Rest\RequestParam(name="accBird")
+     * @Rest\RequestParam(name="accDart")
+     * @Rest\RequestParam(name="accRobot")
+     * @Rest\RequestParam(name="accGlow")
+     * @Rest\RequestParam(name="accSpider")
+     * @Rest\RequestParam(name="accExplosion")
      */
-    public function updateStats(Request $r, PlayerManager $pm): Response
+    public function updateStats(Security $s, PlayerManager $pm, $userName, $stars, $demons, $diamonds, $icon, $color1, $color2, $iconType, $coins, $userCoins, $special, $accIcon, $accShip, $accBall, $accBird, $accDart, $accRobot, $accGlow, $accSpider, $accExplosion)
     {   
         $em = $this->getDoctrine()->getManager();
+        $player = $s->getUser();
 
-        $player = $pm->getFromRequest($r);
-
-        if (!$player)
-            return new Response('-1');
-
-        $player->setName($r->request->get('userName'));
-        $player->setStars($r->request->get('stars'));
-        $player->setDemons($r->request->get('demons'));
-        $player->setDiamonds($r->request->get('diamonds'));
-        $player->setIcon($r->request->get('icon'));
-        $player->setColor1($r->request->get('color1'));
-        $player->setColor2($r->request->get('color2'));
-        $player->setIconType($r->request->get('iconType'));
-        $player->setCoins($r->request->get('coins'));
-        $player->setUserCoins($r->request->get('userCoins'));
-        $player->setSpecial($r->request->get('special'));
-        $player->setAccIcon($r->request->get('accIcon'));
-        $player->setAccShip($r->request->get('accShip'));
-        $player->setAccBall($r->request->get('accBall'));
-        $player->setAccUFO($r->request->get('accBird'));
-        $player->setAccWave($r->request->get('accDart'));
-        $player->setAccRobot($r->request->get('accRobot'));
-        $player->setAccGlow($r->request->get('accGlow'));
-        $player->setAccSpider($r->request->get('accSpider'));
-        $player->setAccExplosion($r->request->get('accExplosion'));
+        $player->setName($userName);
+        $player->setStars($stars);
+        $player->setDemons($demons);
+        $player->setDiamonds($diamonds);
+        $player->setIcon($icon);
+        $player->setColor1($color1);
+        $player->setColor2($color2);
+        $player->setIconType($iconType);
+        $player->setCoins($coins);
+        $player->setUserCoins($userCoins);
+        $player->setSpecial($special);
+        $player->setAccIcon($accIcon);
+        $player->setAccShip($accShip);
+        $player->setAccBall($accBall);
+        $player->setAccUFO($accBird);
+        $player->setAccWave($accDart);
+        $player->setAccRobot($accRobot);
+        $player->setAccGlow($accGlow);
+        $player->setAccSpider($accSpider);
+        $player->setAccExplosion($accExplosion);
         $player->setStatsLastUpdatedAt(new \DateTime());
         $pm->updateCreatorPoints($player);
 
         $em->persist($player);
         $em->flush();
 
-        return new Response($player->getId());
+        return $player->getId();
     }
 
     /**
-     * @Route("/getGJScores20.php", name="get_leaderboard")
+     * @Rest\Post("/getGJScores20.php", name="get_leaderboard")
+     *
+     * @Rest\RequestParam(name="type")
+     * @Rest\RequestParam(name="count")
      */
-    public function getLeaderboard(Request $r, PlayerManager $pm): Response
+    public function getLeaderboard(Security $s, $type, $count)
     {
-        if (empty($r->request->get('type')) || empty($r->request->get('count')) || !is_numeric($r->request->get('count'))
-                || !in_array($r->request->get('type'), ['relative', 'creators', 'top', 'friends']))
-            return new Response('-1');
+        if (!in_array($type, ['relative', 'creators', 'top', 'friends']))
+            return -1;
 
         $em = $this->getDoctrine()->getManager();
-
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
         $playerList = null;
         $rankOffset = 1;
 
-        if (!$player)
-            return new Response('-1');
-
-        switch ($r->request->get('type')) {
+        switch ($type) {
             case 'relative':
-                $result = $em->getRepository(Player::class)->relativeLeaderboard($player, $r->request->get('count'));
+                $result = $em->getRepository(Player::class)->relativeLeaderboard($player, $count);
                 $playerList = $result['result'];
-                $rankOffset = max(1, $result['rank'] - (int) $r->request->get('count') / 2);
+                $rankOffset = max(1, $result['rank'] - (int) $count / 2);
                 break;
             case 'creators':
-                $playerList = $em->getRepository(Player::class)->creatorLeaderboard($r->request->get('count'));
+                $playerList = $em->getRepository(Player::class)->creatorLeaderboard($count);
                 break;
             case 'top':
-                $playerList = $em->getRepository(Player::class)->topLeaderboard($r->request->get('count'));
+                $playerList = $em->getRepository(Player::class)->topLeaderboard($count);
                 break;
             case 'friends':
                 if (!$player->getAccount())
-                    return new Response('-1');
+                    return -1;
 
                 $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
                 $friendsArray = [];
@@ -98,11 +114,11 @@ class LeaderboardsController extends AbstractController
                 $playerList = $em->getRepository(Player::class)->friendsLeaderboard($player->getId(), $friendsArray);
                 break;
             default:
-                return new Response('-1');
+                return -1;
         }
 
         if ($playerList === null || count($playerList) === 0)
-            return new Response('-1');
+            return -1;
 
         return $this->render('leaderboards/leaderboards.html.twig', [
             'playerList' => $playerList,
