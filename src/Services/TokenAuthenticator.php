@@ -76,7 +76,7 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
         if (!$auth)
         	throw new CustomUserMessageAuthenticationException("Invalid token");
 
-        return $auth->getUser();
+        return $auth->getUser()->getPlayer();
     }
 
     public function checkCredentials($credentials, UserInterface $user)

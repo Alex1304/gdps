@@ -74,7 +74,7 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
     	try {
-            $userProvider->setUdid($credentials['udid']);
+            $userProvider->setUdid($credentials['udid'] ?? '');
     		return $userProvider->loadUserByUsername($credentials['username']);
     	} catch (UsernameNotFoundException $e) {
     		throw new CustomUserMessageAuthenticationException($e->getMessage());
@@ -99,14 +99,14 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
             return new Response($account->getId() . ',' . $player->getId());
         }
 
-        $auth = $this->em->getRepository(Authorization::class)->forUser($token->getUser()->getId());
+        $auth = $this->em->getRepository(Authorization::class)->forUser($account->getId());
         $status = Response::HTTP_OK;
 
         if (!$auth) {
         	$status = Response::HTTP_CREATED;
             $auth = new Authorization();
             $auth->setUser($account);
-            $auth->setToken($this->tokenGen->generate($account, $this->b64));
+            $auth->setToken($this->tokenGen->generate($player, $this->b64));
 
             $em->persist($auth);
             $em->flush();

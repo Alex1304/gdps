@@ -38,7 +38,7 @@ class RestApiController extends FOSRestController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getId());
+        $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getAccount()->getId());
 
         $em->remove($auth);
         $em->flush();
@@ -58,13 +58,13 @@ class RestApiController extends FOSRestController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $user = $s->getUser();
+        $user = $s->getUser()->getAccount();
         $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
 
         $user->setUsername($username ?? $user->getUsername());
-        $user->setPassword($password);
+        $user->setPassword($password ?? $user->getPassword());
         $user->setEmail($email ?? $user->getEmail());
-        $auth->setToken($tokenGen->generate($user));
+        $auth->setToken($tokenGen->generate($user->getPlayer()));
         $auth->setUser($user);
 
         $v->validate($user);
@@ -86,11 +86,11 @@ class RestApiController extends FOSRestController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $user = $s->getUser();
+        $user = $s->getUser()->getAccount();
         $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
 
         $user->setPassword($password);
-        $auth->setToken($tokenGen->generate($user));
+        $auth->setToken($tokenGen->generate($user->getPlayer()));
         $auth->setUser($user);
 
         $em->persist($auth);
@@ -117,7 +117,7 @@ class RestApiController extends FOSRestController
             throw new InvalidParametersException("Unknown email");
 
         $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
-        $auth->setToken($tokenGen->generate($user));
+        $auth->setToken($tokenGen->generate($user->getPlayer()));
         $auth->setUser($user);
         $em->persist($auth);
         $em->flush();
