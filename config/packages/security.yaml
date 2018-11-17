@@ -4,6 +4,13 @@ security:
         gd_user:
             id: App\Services\GDUserProvider
 
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_ELDERMOD, ROLE_ALLOWED_TO_SWITCH]
+        ROLE_ELDERMOD: [ROLE_MOD]
+        ROLE_MOD: [ROLE_USER]
+        ROLE_USER: [ROLE_UNREGISTERED_USER]
+
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -37,6 +44,7 @@ security:
                     - App\Services\GJPAuthenticator
                     - App\Services\UnregisteredAuthenticator
 
+            stateless: true
 
             # activate different ways to authenticate
 

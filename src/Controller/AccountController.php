@@ -3,11 +3,10 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Security;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use FOS\RestBundle\Controller\Annotations as Rest;
 
-use App\Services\PlayerManager;
 use App\Services\GDAuthChecker;
 use App\Services\TimeFormatter;
 use App\Entity\Account;
@@ -20,34 +19,38 @@ class AccountController extends AbstractController
 {
     const USERS_PER_PAGE = 10;
     const FRIEND_REQUESTS_PER_PAGE = 20;
-    const PRIATE_MESSAGES_PER_PAGE = 50;
+    const PRIVATE_MESSAGES_PER_PAGE = 50;
 
     /**
-     * @Route("/accounts/registerGJAccount.php", name="account_register")
+     * @Rest\Post("/accounts/registerGJAccount.php", name="account_register")
+     *
+     * @Rest\RequestParam(name="userName")
+     * @Rest\RequestParam(name="email")
+     * @Rest\RequestParam(name="password")
      */
-    public function accountRegister(Request $r): Response
+    public function accountRegister($userName, $email, $password)
     {
         $em = $this->getDoctrine()->getManager();
 
         $existingAccWithName = $em->getRepository(Account::class)->findOneBy([
-            'username' => $r->request->get('userName'),
+            'username' => $userName,
         ]);
 
         if ($existingAccWithName)
-            return new Response('-2');
+            return -2;
 
         $existingAccWithEmail = $em->getRepository(Account::class)->findOneBy([
-            'email' => $r->request->get('email'),
+            'email' => $email,
         ]);
 
         if ($existingAccWithEmail)
-            return new Response('-3');
+            return -6;
 
         $account = new Account();
 
-        $account->setUsername($r->request->get('userName'));
-        $account->setPassword(password_hash($r->request->get('password'), PASSWORD_BCRYPT));
-        $account->setEmail($r->request->get('email'));
+        $account->setUsername($userName);
+        $account->setPassword(password_hash($password, PASSWORD_BCRYPT));
+        $account->setEmail($email);
         $account->setYoutube('');
         $account->setTwitter('');
         $account->setTwitch('');
@@ -59,85 +62,36 @@ class AccountController extends AbstractController
         $em->persist($account);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/accounts/loginGJAccount.php", name="account_login")
+     * @Rest\Post("/accounts/loginGJAccount.php", name="account_login")
      */
-    public function accountLogin(Request $r, GDAuthChecker $gdac): Response
+    public function accountLogin()
     {
-        $em = $this->getDoctrine()->getManager();
-
-        $account = $em->getRepository(Account::class)->findOneBy([
-            'username' => $r->request->get('userName'),
-        ]);
-
-        if (!$account || !$gdac->checkPlain($account, $r->request->get('password')))
-            return new Response('-1');
-
-        // Finding an unregistered player with same deviceID as the person who attempts to login
-        $player = $em->getRepository(Player::class)->findUnregisteredByDeviceID($r->request->get('udid'));
-
-        if (!$account->getPlayer()) {
-            if (!$player) {
-                $player = new Player();
-                $player->setName('Player');
-                $player->setDeviceID('none');
-                $player->setStars(0);
-                $player->setDemons(0);
-                $player->setDiamonds(0);
-                $player->setIcon(0);
-                $player->setColor1(0);
-                $player->setColor2(0);
-                $player->setIconType(0);
-                $player->setCoins(0);
-                $player->setUserCoins(0);
-                $player->setSpecial(0);
-                $player->setAccIcon(0);
-                $player->setAccShip(0);
-                $player->setAccBall(0);
-                $player->setAccUFO(0);
-                $player->setAccWave(0);
-                $player->setAccRobot(0);
-                $player->setAccGlow(0);
-                $player->setAccSpider(0);
-                $player->setAccExplosion(0);
-                $player->setStatsLastUpdatedAt(new \DateTime());
-                $player->setCreatorPoints(0);
-            }
-
-            $account->setPlayer($player);
-            $em->persist($player);
-            $em->flush();
-        } else {
-            // If the account already has an associated player, the other player instance wiht the same deviceID will be destroyed, unless he has some levels uploaded.
-            if ($player && !count($player->getLevels())) {
-                $em->remove($player);
-                $em->flush();
-            }
-        }
-
-        return new Response($account->getId() . ',' . $account->getPlayer()->getId());
+        // Already handled by PlainPasswordAuthenticator, nothing to do here.
     }
 
     /**
-     * @Route("/getGJUserInfo20.php", name="get_user_info")
+     * @Rest\Post("/getGJUserInfo20.php", name="get_user_info")
+     *
+     * @Rest\RequestParam(name="targetAccountID")
      */
-    public function getUserInfo(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    public function getUserInfo(Security $s, TimeFormatter $tf, $targetAccountID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+        $target = $em->getRepository(Account::class)->find($targetAccountID);
 
         if (!$target)
-            return new Response('-1');
+            return -1;
 
         $acc = $player->getAccount();
 
         if ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target))
-            return new Response('-1');
+            return -1;
 
         $self = $player->getAccount() ? $acc->getId() === $target->getId() : false;
         $notifCounters = [];
@@ -169,74 +123,85 @@ class AccountController extends AbstractController
     }
 
     /**
-     * @Route("/getGJUsers20.php", name="search_users")
+     * @Rest\Post("/getGJUsers20.php", name="search_users")
+     *
+     * @Rest\RequestParam(name="str")
+     * @Rest\RequestParam(name="page")
      */
-    public function searchUsers(Request $r): Response
+    public function searchUsers($str, $page)
     {
         $em = $this->getDoctrine()->getManager();
 
-        $players = $em->getRepository(Player::class)->search($r->request->get('str'), $r->request->get('page'));
+        $players = $em->getRepository(Player::class)->search($str, $page);
 
         if (!$players['total'])
-            return new Response('-1');
+            return -1;
 
         return $this->render('account/search_users.html.twig', [
             'players' => $players['result'],
             'total' => $players['total'],
-            'page' => $r->request->get('page'),
+            'page' => $page,
             'count' => self::USERS_PER_PAGE,
         ]);
     }
 
     /**
-     * @Route("/updateGJAccSettings20.php", name="update_account_settings")
+     * @Rest\Post("/updateGJAccSettings20.php", name="update_account_settings")
+     *
+     * @Rest\RequestParam(name="frS")
+     * @Rest\RequestParam(name="mS")
+     * @Rest\RequestParam(name="cS")
+     * @Rest\RequestParam(name="yt")
+     * @Rest\RequestParam(name="twitter")
+     * @Rest\RequestParam(name="twitch")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function updateAccountSettings(Request $r, PlayerManager $pm): Response
+    public function updateAccountSettings(Security $s, $frS, $mS, $cS, $yt, $twitter, $twitch)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
+        $player = $s->getUser();
 
         $acc = $player->getAccount();
 
-        $acc->setFriendRequestPolicy($r->request->get('frS'));
-        $acc->setPrivateMessagePolicy($r->request->get('mS'));
-        $acc->setCommentHistoryPolicy($r->request->get('cS') ?? 0);
-        $acc->setYoutube($r->request->get('yt'));
-        $acc->setTwitter($r->request->get('twitter'));
-        $acc->setTwitch($r->request->get('twitch'));
+        $acc->setFriendRequestPolicy($frS);
+        $acc->setPrivateMessagePolicy($mS);
+        $acc->setCommentHistoryPolicy($cS ?? 0);
+        $acc->setYoutube($yt);
+        $acc->setTwitter($twitter);
+        $acc->setTwitch($twitch);
 
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/uploadFriendRequest20.php", name="send_friend_request")
+     * @Rest\Post("/uploadFriendRequest20.php", name="send_friend_request")
+     *
+     * @Rest\RequestParam(name="toAccountID")
+     * @Rest\RequestParam(name="comment")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function sendFriendRequest(Request $r, PlayerManager $pm): Response
+    public function sendFriendRequest(Security $s, $toAccountID, $comment)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
+        $player = $s->getUser();
         $acc = $player->getAccount();
-        $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
+        $target = $em->getRepository(Account::class)->find($toAccountID);
 
+        // Exit if target doesn't exist or has friend requests disabled
         if (!$target || $target->getFriendRequestPolicy() === 1)
-            return new Response('-1');
+            return -1;
 
+        // Exit if target is blocked by or has blocked our user
         if ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target))
-            return new Response('-1');
+            return -1;
 
-        $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());
-
-        if ($friend)
-            return new Response('-1');
+        // Exit if already friend
+        if ($em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId()))
+            return -1;
 
         $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
 
@@ -245,34 +210,39 @@ class AccountController extends AbstractController
 
         $fr->setSender($acc);
         $fr->setRecipient($target);
-        $fr->setMessage($r->request->get('comment'));
+        $fr->setMessage($comment);
         $fr->setMadeAt(new \DateTime());
         $fr->setIsUnread(true);
 
         $em->persist($fr);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/deleteGJFriendRequests20.php", name="delete_friend_requests")
+     * @Rest\Post("/deleteGJFriendRequests20.php", name="delete_friend_requests")
+     *
+     * @Rest\RequestParam(name="accounts", nullable=true, default=null)
+     * @Rest\RequestParam(name="targetAccountID", nullable=true, default=null)
+     * @Rest\RequestParam(name="isSender")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function deleteFriendRequests(Request $r, PlayerManager $pm): Response
-    {
+    public function deleteFriendRequests(Security $s, $accounts, $targetAccountID, $isSender)
+    {   
+        if (!$accounts && !$targetAccountID) // Both cannot be null simultaneously, there should be at least one supplied
+            return -1;
+
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
+        $player = $s->getUser();
         $acc = $player->getAccount();
-        $frsToDelete = $r->request->get('accounts') ? explode(',', $r->request->get('accounts')) : [ $r->request->get('targetAccountID') ];
+        $frsToDelete = $accounts ? explode(',', $accounts) : [ $targetAccountID ];
 
         foreach ($frsToDelete as $targetID) {
             $target = $em->getRepository(Account::class)->find($targetID);
 
-            if ($r->request->get('isSender'))
+            if ($isSender)
                 $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId());
             else
                 $fr = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId());
@@ -283,87 +253,90 @@ class AccountController extends AbstractController
         
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/getGJFriendRequests20.php", name="get_friend_requests")
+     * @Rest\Post("/getGJFriendRequests20.php", name="get_friend_requests")
+     *
+     * @Rest\RequestParam(name="getSent", nullable=true, default=null)
+     * @Rest\RequestParam(name="page")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function getFriendRequests(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    public function getFriendRequests(Security $s, TimeFormatter $tf, $getSent, $page)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        if ($r->request->get('getSent'))
-            $frs = $em->getRepository(FriendRequest::class)->outgoingFriendRequestsForAccount($player->getAccount()->getId(), $r->request->get('page'));
+        if ($getSent)
+            $frs = $em->getRepository(FriendRequest::class)->outgoingFriendRequestsForAccount($player->getAccount()->getId(), $page);
         else
-            $frs = $em->getRepository(FriendRequest::class)->incomingFriendRequestsForAccount($player->getAccount()->getId(), $r->request->get('page'));
+            $frs = $em->getRepository(FriendRequest::class)->incomingFriendRequestsForAccount($player->getAccount()->getId(), $page);
 
         if (!$frs['total'])
-            return new Response('-2');
+            return -2;
 
         return $this->render('account/get_friend_requests.html.twig', [
             'frs' => $frs['result'],
             'total' => $frs['total'],
-            'page' => $r->request->get('page'),
+            'page' => $page,
             'count' => self::FRIEND_REQUESTS_PER_PAGE,
             'timeFormatter' => $tf,
-            'incoming' => (bool) $r->request->get('getSent'),
+            'incoming' => (bool) $getSent,
         ]);
     }
 
     /**
-     * @Route("/readGJFriendRequest20.php", name="read_friend_request")
+     * @Rest\Post("/readGJFriendRequest20.php", name="read_friend_request")
+     *
+     * @Rest\RequestParam(name="requestID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function readFriendRequest(Request $r, PlayerManager $pm)
+    public function readFriendRequest(Security $s, $requestID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $fr = $em->getRepository(FriendRequest::class)->find($r->request->get('requestID'));
-
+        $fr = $em->getRepository(FriendRequest::class)->find($requestID);
         if (!$fr)
-            return new Response('-1');
+            return -1;
 
         $fr->setIsUnread(false);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
 
     /**
-     * @Route("/acceptGJFriendRequest20.php", name="accept_friend_request")
+     * @Rest\Post("/acceptGJFriendRequest20.php", name="accept_friend_request")
+     *
+     * @Rest\RequestParam(name="requestID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function acceptFriendRequest(Request $r, PlayerManager $pm): Response
+    public function acceptFriendRequest(Security $s, $requestID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $fr = $em->getRepository(FriendRequest::class)->find($r->request->get('requestID'));
-
+        $fr = $em->getRepository(FriendRequest::class)->find($requestID);
         if (!$fr)
-            return new Response('-1');
+            return -1;
 
+        // Exit if already friend
         $friend = $em->getRepository(Friend::class)->friendAB($fr->getSender()->getId(), $fr->getRecipient()->getId());
-
         if ($friend)
-            return new Response('-1');
+            return -1;
 
+        // Exit if friend limit reached
         $recipientHasReachedLimit = $em->getRepository(Friend::class)->hasReachedFriendsLimit($fr->getRecipient()->getId());
         $senderHasReachedLimit = $em->getRepository(Friend::class)->hasReachedFriendsLimit($fr->getSender()->getId());
 
         if ($recipientHasReachedLimit || $senderHasReachedLimit)
-            return new Response('-1');
+            return -1;
 
         $friend = new Friend();
         $friend->setA($fr->getSender());
@@ -375,27 +348,27 @@ class AccountController extends AbstractController
         $em->remove($fr);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/getGJUserList20.php", name="get_user_list")
+     * @Rest\Post("/getGJUserList20.php", name="get_user_list")
+     *
+     * @Rest\RequestParam(name="type")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function getUserList(Request $r, PlayerManager $pm): Response
+    public function getUserList(Security $s, $type)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $isFriendList = !((bool) $r->request->get('type'));
+        $player = $s->getUser();
+        $isFriendList = !((bool) $type);
 
         if ($isFriendList) {
             $friends = $em->getRepository(Friend::class)->friendsFor($player->getAccount()->getId());
 
             if (!count($friends))
-                return new Response('-2');
+                return -2;
 
             $newForA = [];
             $newForB = [];
@@ -419,11 +392,11 @@ class AccountController extends AbstractController
 
             $em->flush();
         } else {
-            $users = $player->getAccount()->getBlockedAccounts();
+            $users = $player->getAccount()->getBlockedAccounts()->toArray();
         }
 
         if (!count($users))
-            return new Response('-2');
+            return -2;
 
         uasort($users, function ($userA, $userB) {
             return strcasecmp($userA->getUsername(), $userB->getUsername());
@@ -437,56 +410,64 @@ class AccountController extends AbstractController
     }
 
     /**
-     * @Route("/removeGJFriend20.php", name="remove_friend")
+     * @Rest\Post("/removeGJFriend20.php", name="remove_friend")
+     *
+     * @Rest\RequestParam(name="targetAccountID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function removeFriend(Request $r, PlayerManager $pm): Response
+    public function removeFriend(Security $s, $targetAccountID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
+        $player = $s->getUser();
         $acc = $player->getAccount();
-        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
+        $target = $em->getRepository(Account::class)->find($targetAccountID);
 
+        // Exit if target doesn't exist
         if (!$target)
-            return new Response('-1');
+            return -1;
 
+        // Exit if already not friend
         $friend = $em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId());
-
         if (!$friend)
-            return new Response('-1');
+            return -1;
 
         $em->remove($friend);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/uploadGJMessage20.php", name="send_private_message")
+     * @Rest\Post("/uploadGJMessage20.php", name="send_private_message")
+     *
+     * @Rest\RequestParam(name="toAccountID")
+     * @Rest\RequestParam(name="subject")
+     * @Rest\RequestParam(name="body")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function sendPrivateMessage(Request $r, PlayerManager $pm): Response
+    public function sendPrivateMessage(Security $s, $toAccountID, $subject, $body)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
-
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
+        $player = $s->getUser();
         $acc = $player->getAccount();
-        $target = $em->getRepository(Account::class)->find($r->request->get('toAccountID'));
+        $target = $em->getRepository(Account::class)->find($toAccountID);
 
+        // Exit if target:
+        // - doesn't exist
+        // - has blocked or is blocked by our user
+        // - has disabled messages from everyone
+        // - allows only messages from friends and our user isn't a friend
         if (!$target || $acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target) || $target->getPrivateMessagePolicy() === 2 || ($target->getPrivateMessagePolicy() === 1 && !$em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId())))
-            return new Response('-1');
+            return -1;
 
         $message = new PrivateMessage();
         $message->setAuthor($acc);
         $message->setRecipient($target);
         $message->setIsUnread(true);
-        $message->setSubject($r->request->get('subject'));
-        $message->setBody($r->request->get('body'));
+        $message->setSubject($subject);
+        $message->setBody($body);
         $message->setPostedAt(new \DateTime());
         $message->setAuthorHasDeleted(false);
         $message->setRecipientHasDeleted(false);
@@ -494,59 +475,61 @@ class AccountController extends AbstractController
         $em->persist($message);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/getGJMessages20.php", name="get_messages")
+     * @Rest\Post("/getGJMessages20.php", name="get_messages")
+     *
+     * @Rest\RequestParam(name="getSent", nullable=true, default=null)
+     * @Rest\RequestParam(name="page")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function getPrivateMessages(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    public function getPrivateMessages(Security $s, TimeFormatter $tf, $getSent, $page)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $incoming = !((bool) $r->request->get('getSent') ?? false);
-
-        $messages = $em->getRepository(PrivateMessage::class)->privateMessagesFor($player->getAccount()->getId(), $r->request->get('page'), !$incoming);
+        $incoming = !((bool) $getSent ?? false);
+        $messages = $em->getRepository(PrivateMessage::class)->privateMessagesFor($player->getAccount()->getId(), $page, !$incoming);
 
         if (!$messages['total'])
-            return new Response('-2');
+            return -2;
 
         return $this->render('account/get_messages.html.twig', [
             'messages' => $messages['result'],
             'total' => $messages['total'],
-            'page' => $r->request->get('page'),
-            'count' => self::PRIATE_MESSAGES_PER_PAGE,
+            'page' => $page,
+            'count' => self::PRIVATE_MESSAGES_PER_PAGE,
             'timeFormatter' => $tf,
             'incoming' => $incoming,
         ]);
     }
 
     /**
-     * @Route("/downloadGJMessage20.php", name="read_private_message")
+     * @Rest\Post("/downloadGJMessage20.php", name="read_private_message")
+     *
+     * @Rest\RequestParam(name="messageID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function readPrivateMessage(Request $r, PlayerManager $pm, TimeFormatter $tf): Response
+    public function readPrivateMessage(Security $s, TimeFormatter $tf, $messageID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $message = $em->getRepository(PrivateMessage::class)->find($r->request->get('messageID'));
-
+        $message = $em->getRepository(PrivateMessage::class)->find($messageID);
         if (!$message)
-            return new Response('-1');
+            return -1;
 
         $isSender = false;
 
-        if ($message->getAuthor()->getId() === $player->getAccount()->getId())
+        if ($message->getAuthor()->getId() === $player->getAccount()->getId()) {
             $isSender = true;
-        elseif ($message->getRecipient()->getId() !== $player->getAccount()->getId())
-            return new Response('-1'); // in this case the user is trying to read someone else's message that is not intended for him.
+        } elseif ($message->getRecipient()->getId() !== $player->getAccount()->getId()) {
+            return -1; // in this case our user is trying to read someone else's message that is not intended for him.
+        }
 
         if (!$isSender) { // Mark as read
             $message->setIsUnread(false);
@@ -558,34 +541,36 @@ class AccountController extends AbstractController
             'timeFormatter' => $tf,
             'isSender' => $isSender,
         ]);
-
     }
 
     /**
-     * @Route("/deleteGJMessages20.php", name="delete_private_messages")
+     * @Rest\Post("/deleteGJMessages20.php", name="delete_private_messages")
+     *
+     * @Rest\RequestParam(name="messageID", nullable=true, default=null)
+     * @Rest\RequestParam(name="messages", nullable=true, default=null)
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function deletePrivateMessage(Request $r, PlayerManager $pm)
+    public function deletePrivateMessage(Security $s, $messages, $messageID)
     {
+        if (!$messages && !$messageID)
+            return -1;
+
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $bulk = $r->request->get('messages');
-
-        $messagesToDelete = $bulk ? explode(',', $bulk) : [ $r->request->get('messageID') ];
+        $messagesToDelete = $messages ? explode(',', $messages) : [ $messageID ];
 
         foreach ($messagesToDelete as $messageID) {
             $message = $em->getRepository(PrivateMessage::class)->find($messageID);
             if (!$message)
-                return new Response('-1');
+                return -1;
 
             $isSender = false;
             if ($message->getAuthor()->getId() === $player->getAccount()->getId())
                 $isSender = true;
             elseif ($message->getRecipient()->getId() !== $player->getAccount()->getId())
-                return new Response('-1'); // in this case the user is trying to delete someone else's message that is not intended for him.
+                return -1; // in this case the user is trying to delete someone else's message that is not intended for him.
 
             if ($isSender)
                 $message->setAuthorHasDeleted(true);
@@ -598,24 +583,24 @@ class AccountController extends AbstractController
 
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/blockGJUser20.php", name="block_account")
+     * @Rest\Post("/blockGJUser20.php", name="block_account")
+     *
+     * @Rest\RequestParam(name="targetAccountID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function blockAccount(Request $r, PlayerManager $pm): Response
+    public function blockAccount(Security $s, $targetAccountID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
-
+        $target = $em->getRepository(Account::class)->find($targetAccountID);
         if (!$target)
-            return new Response('-1');
+            return -1;
 
         // Force unfriend
         $friend = $em->getRepository(Friend::class)->friendAB($player->getAccount()->getId(), $target->getId());
@@ -644,28 +629,28 @@ class AccountController extends AbstractController
         $player->getAccount()->addBlockedAccount($target);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/unblockGJUser20.php", name="unblock_account")
+     * @Rest\Post("/unblockGJUser20.php", name="unblock_account")
+     *
+     * @Rest\RequestParam(name="targetAccountID")
+     * 
+     * @IsGranted("ROLE_USER")
      */
-    public function unblockAccount(Request $r, PlayerManager $pm): Response
+    public function unblockAccount(Security $s, $targetAccountID)
     {
         $em = $this->getDoctrine()->getManager();
-        $player = $pm->getFromRequest($r);
+        $player = $s->getUser();
 
-        if (!$player || !$player->getAccount())
-            return new Response('-1');
-
-        $target = $em->getRepository(Account::class)->find($r->request->get('targetAccountID'));
-
+        $target = $em->getRepository(Account::class)->find($targetAccountID);
         if (!$target)
-            return new Response('-1');
+            return -1;
 
         $player->getAccount()->removeBlockedAccount($target);
         $em->flush();
 
-        return new Response('1');
+        return 1;
     }
 }

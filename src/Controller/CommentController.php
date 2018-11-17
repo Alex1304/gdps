@@ -3,11 +3,10 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Security;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use FOS\RestBundle\Controller\Annotations as Rest;
 
-use App\Services\PlayerManager;
 use App\Services\TimeFormatter;
 use App\Entity\LevelComment;
 use App\Entity\AccountComment;
@@ -15,156 +14,179 @@ use App\Entity\Level;
 
 class CommentController extends AbstractController
 {
-    const COMMENTS_PER_PAGE = 10;
-
     /**
-     * @Route("/uploadGJComment21.php", name="upload_level_comment")
+     * @Rest\Post("/uploadGJComment21.php", name="upload_level_comment")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="comment")
+     * @Rest\RequestParam(name="percent", nullable=true, default=0)
+     *
+     * @IsGranted("ROLE_USER")
      */
-    public function uploadLevelComment(Request $r, PlayerManager $pm): Response
+    public function uploadLevelComment(Security $s, $levelID, $comment, $percent)
     {
     	$em = $this->getDoctrine()->getManager();
-    	$player = $pm->getFromRequest($r);
+    	$player = $s->getUser();$s->getUser();
 
-    	if (!$player || !$player->getAccount())
-    		return new Response('-1');
-
-    	$level = $em->getRepository(Level::class)->find($r->request->get('levelID'));
+    	$level = $em->getRepository(Level::class)->find($levelID);
 
     	if (!$level)
-    		return new Response('-1');
+    		return -1;
 
-    	$comment = new LevelComment();
-    	$comment->setPostedAt(new \DateTime());
-    	$comment->setContent($r->request->get('comment'));
-    	$comment->setAuthor($player);
-    	$comment->setPercent($r->request->get('percent'));
-    	$level->addLevelComment($comment);
+    	$lvlcomment = new LevelComment();
+    	$lvlcomment->setPostedAt(new \DateTime());
+    	$lvlcomment->setContent($comment);
+    	$lvlcomment->setAuthor($player);
+    	$lvlcomment->setPercent($percent);
+    	$level->addLevelComment($lvlcomment);
 
-    	$em->persist($comment);
+    	$em->persist($lvlcomment);
     	$em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/getGJComments21.php", name="get_level_comments")
+     * @Rest\Post("/getGJComments21.php", name="get_level_comments")
+     *
+     * @Rest\RequestParam(name="levelID")
+     * @Rest\RequestParam(name="page")
+     * @Rest\RequestParam(name="mode")
+     * @Rest\RequestParam(name="count", nullable=true, default=10)
      */
-    public function getLevelComments(Request $r, TimeFormatter $tf): Response
+    public function getLevelComments(TimeFormatter $tf, $levelID, $page, $mode, $count)
     {
     	$em = $this->getDoctrine()->getManager();
 
-    	$comments = $em->getRepository(LevelComment::class)->commentsForLevel($r->request->get('levelID'), $r->request->get('page'), $r->request->get('mode'), $r->request->get('count'));
+    	$comments = $em->getRepository(LevelComment::class)->commentsForLevel($levelID, $page, $mode, $count);
 
     	if (!count($comments['result']))
-    		return new Response('-1');
+    		return -1;
 
     	return $this->render('comment/get_level_comments.html.twig', [
     		'showLevelID' => false,
     		'comments' => $comments['result'],
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
-    		'page' => $r->request->get('page'),
-    		'count' => $r->request->get('count') ?? self::COMMENTS_PER_PAGE,
+    		'page' => $page,
+    		'count' => $count,
     	]);
     }
 
     /**
-     * @Route("/getGJCommentHistory.php", name="get_comment_history")
+     * @Rest\Post("/getGJCommentHistory.php", name="get_comment_history")
+     *
+     * @Rest\RequestParam(name="userID")
+     * @Rest\RequestParam(name="page")
+     * @Rest\RequestParam(name="mode")
+     * @Rest\RequestParam(name="count", nullable=true, default=10)
      */
-    public function getCommentHistory(Request $r, TimeFormatter $tf): Response
+    public function getCommentHistory(TimeFormatter $tf, $userID, $page, $mode, $count)
     {
     	$em = $this->getDoctrine()->getManager();
 
-    	$comments = $em->getRepository(LevelComment::class)->commentsByAuthor($r->request->get('userID'), $r->request->get('page'), $r->request->get('mode'), $r->request->get('count'));
+    	$comments = $em->getRepository(LevelComment::class)->commentsByAuthor($userID, $page, $mode, $count);
 
     	if (!count($comments['result']))
-    		return new Response('-1');
+    		return -1;
 
     	return $this->render('comment/get_level_comments.html.twig', [
     		'showLevelID' => true,
     		'comments' => $comments['result'],
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
-    		'page' => $r->request->get('page'),
-    		'count' => $r->request->get('count') ?? self::COMMENTS_PER_PAGE,
+    		'page' => $page,
+    		'count' => $count,
     	]);
     }
 
     /**
-     * @Route("/deleteGJComment20.php", name="delete_level_comment")
+     * @Rest\Post("/deleteGJComment20.php", name="delete_level_comment")
+     *
+     * @Rest\RequestParam(name="commentID")
+     *
+     * @IsGranted("ROLE_USER")
      */
-    public function deleteLevelComment(Request $r, PlayerManager $pm): Response
+    public function deleteLevelComment(Security $s, $commentID)
     {
     	$em = $this->getDoctrine()->getManager();
-    	$player = $pm->getFromRequest($r);
+    	$player = $s->getUser();
 
-    	$comment = $em->getRepository(LevelComment::class)->find($r->request->get('commentID'));
+    	$comment = $em->getRepository(LevelComment::class)->find($commentID);
 
     	if ($comment->getAuthor()->getId() !== $player->getId() && $comment->getLevel()->getCreator()->getId() !== $player->getId())
-    		return new Response('-1');
+    		return -1;
 
     	$em->remove($comment);
     	$em->flush();
 
-    	return new Response('1');
+    	return 1;
     }
 
     /**
-     * @Route("/uploadGJAccComment20.php", name="upload_account_comment")
+     * @Rest\Post("/uploadGJAccComment20.php", name="upload_account_comment")
+     *
+     * @Rest\RequestParam(name="comment")
+     *
+     * @IsGranted("ROLE_USER")
      */
-    public function uploadAccountComment(Request $r, PlayerManager $pm): Response
+    public function uploadAccountComment(Security $s, $comment)
     {
     	$em = $this->getDoctrine()->getManager();
-    	$player = $pm->getFromRequest($r);
+    	$player = $s->getUser();
 
-    	if (!$player || !$player->getAccount())
-    		return new Response('-1');
+    	$lvlcomment = new AccountComment();
+    	$lvlcomment->setPostedAt(new \DateTime());
+    	$lvlcomment->setContent($comment);
+    	$lvlcomment->setAuthor($player->getAccount());
 
-    	$comment = new AccountComment();
-    	$comment->setPostedAt(new \DateTime());
-    	$comment->setContent($r->request->get('comment'));
-    	$comment->setAuthor($player->getAccount());
-
-    	$em->persist($comment);
+    	$em->persist($lvlcomment);
     	$em->flush();
 
-        return new Response('1');
+        return 1;
     }
 
     /**
-     * @Route("/getGJAccountComments20.php", name="get_account_comments")
+     * @Rest\Post("/getGJAccountComments20.php", name="get_account_comments")
+     *
+     * @Rest\RequestParam(name="accountID")
+     * @Rest\RequestParam(name="page")
      */
-    public function getAccountComments(Request $r, TimeFormatter $tf): Response
+    public function getAccountComments(TimeFormatter $tf, $accountID, $page)
     {
     	$em = $this->getDoctrine()->getManager();
 
-    	$comments = $em->getRepository(AccountComment::class)->commentsForAccount($r->request->get('accountID'), $r->request->get('page'));
+    	$comments = $em->getRepository(AccountComment::class)->commentsForAccount($accountID, $page);
 
     	return $this->render('comment/get_account_comments.html.twig', [
     		'comments' => $comments['result'],
     		'total' => $comments['total'],
     		'timeFormatter' => $tf,
-    		'page' => $r->request->get('page'),
-    		'count' => self::COMMENTS_PER_PAGE,
+    		'page' => $page,
+    		'count' => 10,
     	]);
     }
 
     /**
-     * @Route("/deleteGJAccComment20.php", name="delete_account_comment")
+     * @Rest\Post("/deleteGJAccComment20.php", name="delete_account_comment")
+     *
+     * @Rest\RequestParam(name="commentID")
+     *
+     * @IsGranted("ROLE_USER")
      */
-    public function deleteAccountComment(Request $r, PlayerManager $pm): Response
+    public function deleteAccountComment(Security $s, $commentID)
     {
     	$em = $this->getDoctrine()->getManager();
-    	$player = $pm->getFromRequest($r);
+    	$player = $s->getUser();
 
-    	$comment = $em->getRepository(AccountComment::class)->find($r->request->get('commentID'));
+    	$comment = $em->getRepository(AccountComment::class)->find($commentID);
 
     	if ($comment->getAuthor()->getId() !== $player->getAccount()->getId())
-    		return new Response('-1');
+    		return -1;
 
     	$em->remove($comment);
     	$em->flush();
 
-    	return new Response('1');
+    	return 1;
     }
 }

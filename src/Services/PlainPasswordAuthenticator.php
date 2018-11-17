@@ -48,7 +48,7 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
     		return false;
 
         if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded') {
-            return $request->request->has('userName') && $request->request->has('password');
+            return $request->request->has('userName') && $request->request->has('password') && $request->request->has('udid');
         } else {
             $credentials = $this->serializer->deserialize($request->getContent(), 'array', 'json');
             return isset($credentials['username']) && isset($credentials['password']);
@@ -61,12 +61,20 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
      */
     public function getCredentials(Request $request)
     {
-		return $this->serializer->deserialize($request->getContent(), 'array', 'json');
+        if ($request->headers->get('Content-Type') === 'application/json')
+            return $this->serializer->deserialize($request->getContent(), 'array', 'json');
+        else
+            return [
+                'username' => $request->request->get('userName'),
+                'password' => $request->request->get('password'),
+                'udid' => $request->request->get('udid'),
+            ];
     }
 
     public function getUser($credentials, UserProviderInterface $userProvider)
     {
     	try {
+            $userProvider->setUdid($credentials['udid']);
     		return $userProvider->loadUserByUsername($credentials['username']);
     	} catch (UsernameNotFoundException $e) {
     		throw new CustomUserMessageAuthenticationException($e->getMessage());
@@ -83,11 +91,13 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, $providerKey)
     {
-    	$account = $token->getUser();
+    	$player = $token->getUser();
+        $account = $player->getAccount();
     	$em = $this->em;
 
-    	if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded')
-    		return new Response($account->getPlayer()->getId() . ',' . $account->getId());
+    	if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded') {
+            return new Response($account->getId() . ',' . $player->getId());
+        }
 
         $auth = $this->em->getRepository(Authorization::class)->forUser($token->getUser()->getId());
         $status = Response::HTTP_OK;

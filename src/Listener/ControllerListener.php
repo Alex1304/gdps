@@ -7,7 +7,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
+use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 use App\Exceptions\InvalidParametersException;
 use App\Services\UserPassword;
@@ -30,8 +32,11 @@ class ControllerListener implements EventSubscriberInterface
 				['validatePasswordParam', -101],
 			],
 			'kernel.view' => [
-				['intResponse', -102],
-			]
+				['intResponse', -100],
+			],
+			'kernel.exception' => [
+				['accessDeniedToMinus1', -100],
+			],
 		];
 	}
 
@@ -70,6 +75,13 @@ class ControllerListener implements EventSubscriberInterface
 
 		if (is_numeric($val)) {
 			$event->setResponse(new Response($val));
+		}
+	}
+
+	public function accessDeniedToMinus1(GetResponseForExceptionEvent $event)
+	{
+		if ($event->getException() instanceof AccessDeniedHttpException) {
+			$event->setResponse(new Response('-1'));
 		}
 	}
 }

@@ -5,10 +5,7 @@ namespace App\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Security\Core\Security;
 use FOS\RestBundle\Controller\Annotations as Rest;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
-use App\Services\PlayerManager;
 use App\Services\SongProvider;
 use App\Services\HashGenerator;
 use App\Services\Base64URL;
@@ -109,7 +106,7 @@ class LevelsController extends AbstractController
         $em->persist($level);
         $em->flush();
 
-        return new Response($level->getId());
+        return new $level->getId();
     }
 
     /**
@@ -254,7 +251,7 @@ class LevelsController extends AbstractController
         $song = $sp->fetchSong($songID);
 
         if ($song == '-1' || $song == '-2')
-            return new Response($song);
+            return $song;
 
         return $this->render('levels/song_info.html.twig', [
             'song' => $sp->fetchSong($songID),
