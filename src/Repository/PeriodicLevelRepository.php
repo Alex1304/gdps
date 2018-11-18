@@ -28,7 +28,7 @@ class PeriodicLevelRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('p')
             ->where(':now BETWEEN p.periodStart AND p.periodEnd')
-            ->setParameter('now', new \DateTime('now'))
+            ->setParameter('now', new \DateTime("now"))
             ->andWhere('p.type = :type')
             ->setParameter('type', $type)
             ->setMaxResults(1)
@@ -38,13 +38,30 @@ class PeriodicLevelRepository extends ServiceEntityRepository
 
     public function findQueuedOfType($type)
     {
+        return $this->findFromDateOfType($type, new \DateTime("now"));
+    }
+
+    public function findFromDateOfType($type, \DateTimeInterface $start)
+    {
         return $this->createQueryBuilder('p')
-            ->where('p.periodStart > :now')
-            ->setParameter('now', new \DateTime('now'))
+            ->where('p.periodStart >= :now')
+            ->setParameter('now', $start)
             ->andWhere('p.type = :type')
             ->setParameter('type', $type)
+            ->orderBy('p.periodStart', 'DESC')
             ->getQuery()
             ->getResult();
     }
 
+    public function findIfNotPast($index)
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.id = :id')
+            ->setParameter('id', $index)
+            ->andWhere('p.periodEnd > :now')
+            ->setParameter('now', new \DateTime("now"))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

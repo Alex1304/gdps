@@ -48,7 +48,7 @@ class RestApiController extends FOSRestController
     }
 
     /**
-     * @Rest\Get("/admin/periodic", name="api_admin_get_periodic")
+     * @Rest\Get("/admin/periodic", name="api_admin_get_periodic_levels")
      * @Rest\View
      *
      * @Rest\QueryParam(name="type", requirements="0|1")
@@ -67,13 +67,13 @@ class RestApiController extends FOSRestController
     }
 
     /**
-     * @Rest\Post("/admin/periodic", name="api_admin_append_periodic")
+     * @Rest\Post("/admin/periodic", name="api_admin_append_periodic_level")
      * @Rest\View(StatusCode=201)
      *
      * @Rest\RequestParam(name="level_id", requirements="[0-9]+")
      * @Rest\RequestParam(name="type", requirements="0|1")
      */
-    public function appendPeriodic($level_id, $type)
+    public function appendPeriodicLevel($level_id, $type)
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -92,6 +92,37 @@ class RestApiController extends FOSRestController
         $periodic->setPeriodStart($dateStart);
         $periodic->setPeriodEnd($dateStart->add(PeriodicLevel::intervalForType($type)));
         $em->persist($periodic);
+        $em->flush();
+
+        return $periodic;
+    }
+
+    /**
+     * @Rest\Delete("/admin/periodic", name="api_admin_delete_priodic_level")
+     * @Rest\View
+     * 
+     * @Rest\QueryParam(name="index", requirements="[0-9]+")
+     */
+    public function deletePeriodicLevel($index)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $periodic = $em->getRepository(PeriodicLevel::class)->findIfNotPast($index);
+        if (!$periodic)
+            throw new InvalidParametersException("Unknown index");
+
+        $type = $periodic->getType();
+
+        $periodicsToShift = $em->getRepository(PeriodicLevel::class)->findFromDateOfType($type, $periodic->getPeriodEnd());
+        $em->remove($periodic);
+
+        foreach ($periodicsToShift as $p) {
+            $start = \DateTimeImmutable::createFromMutable($p->getPeriodStart());
+            $end = \DateTimeImmutable::createFromMutable($p->getPeriodEnd());
+            $p->setPeriodStart($start->sub(PeriodicLevel::intervalForType($type)));
+            $p->setPeriodEnd($end->sub(PeriodicLevel::intervalForType($type)));
+        }
+
         $em->flush();
 
         return null;
