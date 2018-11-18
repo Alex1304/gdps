@@ -39,7 +39,7 @@ class HashGenerator
     /**
      * Generates two hashes for the given level. The first hash is on the level data, the second one on the level info
      */
-    public function generateForLevel($level) {
+    public function generateForLevel($level, $periodicID = 0) {
         $result = 'aaaaa';
         $len = strlen($level->getData());
         $divided = intval($len / 40);
@@ -66,7 +66,8 @@ class HashGenerator
         $info .= $level->getFeatureScore();
         $info .= ',';
         $info .= $level->getPassword();
-        $info .= ',0';
+        $info .= ',';
+        $info .= $periodicID;
 
         return [
             'data' => sha1($result . self::SALT_1),

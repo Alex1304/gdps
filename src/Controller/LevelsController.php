@@ -19,6 +19,7 @@ use App\Entity\LevelStarVote;
 use App\Entity\LevelDemonVote;
 use App\Entity\Friend;
 use App\Entity\LevelScore;
+use App\Entity\PeriodicLevel;
 
 class LevelsController extends AbstractController
 {
@@ -27,23 +28,23 @@ class LevelsController extends AbstractController
     /**
      * @Rest\Post("/uploadGJLevel21.php", name="upload_level")
      *
-     * @Rest\RequestParam(name="original", nullable=true, default=0)
-     * @Rest\RequestParam(name="levelID", nullable=true, default=0)
+     * @Rest\RequestParam(name="original")
+     * @Rest\RequestParam(name="levelID")
      * @Rest\RequestParam(name="levelName")
-     * @Rest\RequestParam(name="unlisted", nullable=true, default=0)
-     * @Rest\RequestParam(name="levelDesc", nullable=true, default="")
+     * @Rest\RequestParam(name="unlisted")
+     * @Rest\RequestParam(name="levelDesc")
      * @Rest\RequestParam(name="levelString")
-     * @Rest\RequestParam(name="audioTrack", nullable=true, default=0)
-     * @Rest\RequestParam(name="songID", nullable=true, default=0)
+     * @Rest\RequestParam(name="audioTrack")
+     * @Rest\RequestParam(name="songID")
      * @Rest\RequestParam(name="gameVersion")
-     * @Rest\RequestParam(name="requestedStars", nullable=true, default=0)
+     * @Rest\RequestParam(name="requestedStars")
      * @Rest\RequestParam(name="levelLength")
-     * @Rest\RequestParam(name="ldm", nullable=true, default=0)
-     * @Rest\RequestParam(name="password", nullable=true, default=0)
-     * @Rest\RequestParam(name="objects", nullable=true, default=0)
+     * @Rest\RequestParam(name="ldm")
+     * @Rest\RequestParam(name="password")
+     * @Rest\RequestParam(name="objects")
      * @Rest\RequestParam(name="extraString")
-     * @Rest\RequestParam(name="twoPlayer", nullable=true, default=0)
-     * @Rest\RequestParam(name="coins", nullable=true, default=0)
+     * @Rest\RequestParam(name="twoPlayer")
+     * @Rest\RequestParam(name="coins")
      */
     public function uploadLevel(Security $s, Base64URL $b64, $original, $levelID, $levelName, $unlisted, $levelDesc, $levelString, $audioTrack, $songID, $gameVersion, $requestedStars, $levelLength, $ldm, $password, $objects, $extraString, $twoPlayer, $coins)
     {
@@ -60,7 +61,7 @@ class LevelsController extends AbstractController
             if (!$levelWithSameName) {
                 $level = new Level();
                 $level->setCreator($s->getUser());
-                $level->setVersion(0); // Will be incremented anyway at line 79
+                $level->setVersion(0); // Will be incremented anyway at line 95
                 $level->setStars(0);
                 $level->setFeatureScore(0);
                 $level->setIsEpic(0);
@@ -106,7 +107,7 @@ class LevelsController extends AbstractController
         $em->persist($level);
         $em->flush();
 
-        return new $level->getId();
+        return $level->getId();
     }
 
     /**
@@ -268,7 +269,19 @@ class LevelsController extends AbstractController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $level = $em->getRepository(Level::class)->find($levelID);
+        $periodic = null;
+        switch ($levelID) {
+            case -1:
+                $periodic = $em->getRepository(PeriodicLevel::class)->findCurrentOfType(PeriodicLevel::DAILY);
+                $level = $periodic ? $periodic->getLevel() : null;
+                break;
+            case -2:
+                $periodic = $em->getRepository(PeriodicLevel::class)->findCurrentOfType(PeriodicLevel::WEEKLY);
+                $level = $periodic ? $periodic->getLevel() : null;
+                break;
+            default:
+                $level = $em->getRepository(Level::class)->find($levelID);
+        }
 
         if (!$level)
             return -1;
@@ -280,12 +293,22 @@ class LevelsController extends AbstractController
             $em->flush();
         }
 
+        $creator = $periodic ? [
+            'playerID' => $level->getCreator()->getId(),
+            'name' => $level->getCreator()->getName(),
+            'accountID' => $level->getCreator()->getAccount() != null ? $level->getCreator()->getAccount()->getId() : 0,
+        ] : null;
+
+        $periodicID = $periodic ? $periodic->getId() : 0;
+
         return $this->render('levels/download_level.html.twig', [
             'level' => $level,
             'uploadedAt' => $tf->format($level->getUploadedAt()),
             'lastUpdatedAt' => $tf->format($level->getLastUpdatedAt()),
             'pass' => $level->getPassword() ? $b64->encode($xor->cipher($level->getPassword(), XORCipher::KEY_LEVEL_PASS)) : '0',
-            'hash' => $hg->generateForLevel($level),
+            'hash' => $hg->generateForLevel($level, $periodicID),
+            'periodicID' => $periodicID,
+            'creator' => $creator,
         ]);
     }
 
@@ -523,5 +546,23 @@ class LevelsController extends AbstractController
             'scores' => $scores,
             'timeFormatter' => $tf,
         ]);
+    }
+
+    /**
+     * @Rest\Post("getGJDailyLevel.php", name="get_daily_level")
+
+     * @Rest\RequestParam(name="weekly", requirements="0|1")
+     */
+    public function getDailyInfo($weekly)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $periodic = $em->getRepository(PeriodicLevel::class)->findCurrentOfType($weekly);
+        if (!$periodic)
+            return '|0';
+
+        $secondsLeft = $periodic->getPeriodEnd()->getTimestamp() - (new \DateTime("now"))->getTimestamp();
+
+        return $periodic->getId() . '|' . $secondsLeft;
     }
 }

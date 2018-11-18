@@ -55,8 +55,30 @@ class UnregisteredAuthenticator extends AbstractGuardAuthenticator
             $player = $this->em->getRepository(Player::class)->findUnregisteredByDeviceID($credentials['udid']);
             if ($player === null) {
                 $player = new Player();
-                $player->setDeviceID($r->request->get('udid'));
-                $this->getEntityManager()->persist($player);
+                $player->setDeviceID($credentials['udid']);
+                $player->setName('Player');
+                $player->setStars(0);
+                $player->setDemons(0);
+                $player->setDiamonds(0);
+                $player->setIcon(0);
+                $player->setColor1(0);
+                $player->setColor2(0);
+                $player->setIconType(0);
+                $player->setCoins(0);
+                $player->setUserCoins(0);
+                $player->setSpecial(0);
+                $player->setAccIcon(0);
+                $player->setAccShip(0);
+                $player->setAccBall(0);
+                $player->setAccUFO(0);
+                $player->setAccWave(0);
+                $player->setAccRobot(0);
+                $player->setAccGlow(0);
+                $player->setAccSpider(0);
+                $player->setAccExplosion(0);
+                $player->setStatsLastUpdatedAt(new \DateTime());
+                $player->setCreatorPoints(0);
+                $this->em->persist($player);
             }
         }
 

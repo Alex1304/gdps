@@ -36,8 +36,17 @@
 	48:1:
 	40:{% if level.isLDM %}1{% else %}0{% endif %}:
 	27:{{ pass }}
+	{% if periodicID > 0 %}
+		:41:{{ periodicID }}:
+	{% endif %}
 	#
 	{{ hash.data }}
 	#
 	{{ hash.info }}
+	{% if creator is not null %}
+		#
+		{{ creator.playerID }}:
+		{{ creator.name }}:
+		{{ creator.accountID }}
+	{% endif %}
 {% endblock %}

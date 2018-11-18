@@ -44,8 +44,8 @@ class PeriodicLevelRepository extends ServiceEntityRepository
     public function findFromDateOfType($type, \DateTimeInterface $start)
     {
         return $this->createQueryBuilder('p')
-            ->where('p.periodStart >= :now')
-            ->setParameter('now', $start)
+            ->where('p.periodStart >= :start')
+            ->setParameter('start', $start)
             ->andWhere('p.type = :type')
             ->setParameter('type', $type)
             ->orderBy('p.periodStart', 'DESC')

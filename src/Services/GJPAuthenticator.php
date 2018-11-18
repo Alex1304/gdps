@@ -36,7 +36,7 @@ class GJPAuthenticator extends AbstractGuardAuthenticator
      */
     public function supports(Request $request)
     {
-        return $request->request->has('accountID') && $request->request->has('gjp');
+        return $request->request->get('accountID') && $request->request->get('gjp');
     }
 
     /**

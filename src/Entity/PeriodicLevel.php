@@ -90,7 +90,12 @@ class PeriodicLevel
 
     public function setPeriodStart(\DateTimeInterface $periodStart): self
     {
-        $this->periodStart = $periodStart;
+        if ($periodStart instanceof \DateTimeImmutable) {
+            $this->periodStart = new \DateTime();
+            $this->periodStart->setTimestamp($periodStart->getTimestamp());
+        } else {
+            $this->periodStart = $periodStart;
+        }
 
         return $this;
     }
@@ -102,7 +107,12 @@ class PeriodicLevel
 
     public function setPeriodEnd(\DateTimeInterface $periodEnd): self
     {
-        $this->periodEnd = $periodEnd;
+        if ($periodEnd instanceof \DateTimeImmutable) {
+            $this->periodEnd = new \DateTime();
+            $this->periodEnd->setTimestamp($periodEnd->getTimestamp());
+        } else {
+            $this->periodEnd = $periodEnd;
+        }
 
         return $this;
     }

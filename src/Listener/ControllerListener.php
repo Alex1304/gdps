@@ -32,7 +32,7 @@ class ControllerListener implements EventSubscriberInterface
 				['validatePasswordParam', -101],
 			],
 			'kernel.view' => [
-				['intResponse', -100],
+				['valueAsResponse', -100],
 			],
 			'kernel.exception' => [
 				['accessDeniedToMinus1', -100],
@@ -66,16 +66,13 @@ class ControllerListener implements EventSubscriberInterface
 		$r->attributes->set('password', $up->getHashedPassword());
 	}
 
-	public function intResponse(GetResponseForControllerResultEvent $event)
+	public function valueAsResponse(GetResponseForControllerResultEvent $event)
 	{
 		if (static::isApiRoute($event->getRequest())) // Shouldn't affect API routes
 			return;
 
 		$val = $event->getControllerResult();
-
-		if (is_numeric($val)) {
-			$event->setResponse(new Response($val));
-		}
+		$event->setResponse(new Response($val));
 	}
 
 	public function accessDeniedToMinus1(GetResponseForExceptionEvent $event)

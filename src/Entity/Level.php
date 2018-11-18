@@ -61,6 +61,7 @@ class Level
      * @ORM\Column(type="integer")
      *
      * @Serializer\Expose
+     * @Serializer\SerializedName("custom_song_id")
      */
     private $customSongID;
 
