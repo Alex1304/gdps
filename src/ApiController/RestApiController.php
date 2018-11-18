@@ -2,7 +2,6 @@
 
 namespace App\ApiController;
 
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Security;
 use FOS\RestBundle\Controller\FOSRestController;
@@ -12,6 +11,8 @@ use Symfony\Component\Validator\ConstraintViolationList;
 
 use App\Entity\Account;
 use App\Entity\Authorization;
+use App\Entity\Level;
+use App\Entity\PeriodicLevel;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Services\StrictValidator;
@@ -41,6 +42,56 @@ class RestApiController extends FOSRestController
         $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getAccount()->getId());
 
         $em->remove($auth);
+        $em->flush();
+
+        return null;
+    }
+
+    /**
+     * @Rest\Get("/admin/periodic", name="api_admin_get_periodic")
+     * @Rest\View
+     *
+     * @Rest\QueryParam(name="type", requirements="0|1")
+     */
+    public function getPeriodicLevelsTable($type)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $currentPeriodic = $em->getRepository(PeriodicLevel::class)->findCurrentOfType($type);
+        $periodics = $em->getRepository(PeriodicLevel::class)->findQueuedOfType($type);
+
+        return [
+            'current' => $currentPeriodic,
+            'queued' => $periodics,
+        ];
+    }
+
+    /**
+     * @Rest\Post("/admin/periodic", name="api_admin_append_periodic")
+     * @Rest\View(StatusCode=201)
+     *
+     * @Rest\RequestParam(name="level_id", requirements="[0-9]+")
+     * @Rest\RequestParam(name="type", requirements="0|1")
+     */
+    public function appendPeriodic($level_id, $type)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $level = $em->getRepository(Level::class)->find($level_id);
+        if (!$level)
+            throw new InvalidParametersException("Unknown level");
+
+        $latest = $em->getRepository(PeriodicLevel::class)->findLatestOfType($type);
+
+        $dateStart = \DateTimeImmutable::createFromMutable(
+            $latest ? $latest->getPeriodEnd() : PeriodicLevel::dateStartForType($type));
+
+        $periodic = new PeriodicLevel();
+        $periodic->setLevel($level);
+        $periodic->setType($type);
+        $periodic->setPeriodStart($dateStart);
+        $periodic->setPeriodEnd($dateStart->add(PeriodicLevel::intervalForType($type)));
+        $em->persist($periodic);
         $em->flush();
 
         return null;

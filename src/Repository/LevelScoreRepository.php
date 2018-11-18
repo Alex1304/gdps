@@ -72,17 +72,12 @@ class LevelScoreRepository extends ServiceEntityRepository
 
     public function weekLeaderboard($levelID)
     {
-        $now = new \DateTime();
-        $weekInterval = new \DateInterval("P7D");
-        $weekInterval->invert = 1;
-        $aWeekAgo = $now->add($weekInterval);
-
         return $this->createQueryBuilder('s')
             ->join('s.level', 'l')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
             ->andWhere('s.updatedAt > :week')
-            ->setParameter('week', $aWeekAgo)
+            ->setParameter('week', new \DateTime("1 week ago"))
             ->orderBy('s.percent DESC, s.coins DESC, s.updatedAt')
             ->setMaxResults(200)
             ->getQuery()

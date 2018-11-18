@@ -187,15 +187,9 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function trendingLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $now = new \DateTime();
-        $weekInterval = new \DateInterval("P7D");
-        $weekInterval->invert = 1;
-        $aWeekAgo = $now->add($weekInterval);
-
-
         $qb = $this->queryBuilderTemplate()
             ->andWhere('l.uploadedAt > :interval')
-            ->setParameter('interval', $aWeekAgo)
+            ->setParameter('interval', new \DateTime("1 week ago"))
             ->having('likeCount > 0');
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);

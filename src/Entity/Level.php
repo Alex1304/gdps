@@ -6,9 +6,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+use JMS\Serializer\Annotation as Serializer;
+
 /**
  * @ORM\Entity(repositoryClass="App\Repository\LevelRepository")
  * @ORM\Table(name="level", indexes={@ORM\Index(name="levelsearch_idx", columns={"name"}), @ORM\Index(name="featured_idx", columns={"feature_score"})})
+ *
+ * @Serializer\ExclusionPolicy("ALL")
  */
 class Level
 {
@@ -16,16 +20,22 @@ class Level
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $name;
 
     /**
      * @ORM\Column(type="text")
+     *
+     * @Serializer\Expose
      */
     private $description;
 
@@ -42,26 +52,36 @@ class Level
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $audioTrack;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $customSongID;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $stars;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $featureScore;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $isEpic;
 
@@ -85,41 +105,58 @@ class Level
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $gameVersion;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $version;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $requestedStars;
 
     /**
      * @ORM\Column(type="datetime")
+     *
+     * @Serializer\Expose
      */
     private $uploadedAt;
 
     /**
      * @ORM\Column(type="datetime")
+     *
+     * @Serializer\Expose
      */
     private $lastUpdatedAt;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $length;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
+     * @Serializer\SerializedName("is_ldm")
      */
     private $isLDM;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $isUnlisted;
 
@@ -130,6 +167,8 @@ class Level
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $objectCount;
 
@@ -140,46 +179,64 @@ class Level
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Level", inversedBy="original")
+     *
+     * @Serializer\Expose
      */
     private $original;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $isTwoPlayer;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $coins;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $difficulty;
 
     /**
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $demonDifficulty;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $isDemon;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $isAuto;
 
     /**
      * @ORM\Column(type="boolean")
+     *
+     * @Serializer\Expose
      */
     private $hasCoinsVerified;
 
     /**
      * @ORM\Column(type="datetime", nullable=true)
+     *
+     * @Serializer\Expose
      */
     private $rewardsGivenAt;
 

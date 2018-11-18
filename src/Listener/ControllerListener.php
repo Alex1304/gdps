@@ -80,6 +80,9 @@ class ControllerListener implements EventSubscriberInterface
 
 	public function accessDeniedToMinus1(GetResponseForExceptionEvent $event)
 	{
+		if (static::isApiRoute($event->getRequest()))
+			return;
+		
 		if ($event->getException() instanceof AccessDeniedHttpException) {
 			$event->setResponse(new Response('-1'));
 		}
