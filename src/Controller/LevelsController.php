@@ -562,6 +562,7 @@ class LevelsController extends AbstractController
             return '|0';
 
         $secondsLeft = $periodic->getPeriodEnd()->getTimestamp() - (new \DateTime("now"))->getTimestamp();
+        $secondsLeft += 5; // Adding a delay of 5 seconds so that the game has time to load the next Daily/Weekly when time runs out
 
         return $periodic->getId() . '|' . $secondsLeft;
     }
