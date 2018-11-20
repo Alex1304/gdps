@@ -17,7 +17,8 @@ class PeriodicLevel
 
     /**
      * @ORM\Id()
-     * @ORM\GeneratedValue()
+     * @ORM\GeneratedValue(strategy="CUSTOM")
+     * @ORM\CustomIdGenerator(class="App\Services\PeriodicIdGenerator")
      * @ORM\Column(type="integer")
      *
      * @Serializer\Expose
@@ -115,6 +116,16 @@ class PeriodicLevel
         }
 
         return $this;
+    }
+
+    public static function offsetForType($type): int
+    {
+        switch ($type) {
+            case self::WEEKLY:
+                return 100000;
+            default:
+                return 0;
+        }
     }
 
     public static function dateStartForType($type): \DateTime

@@ -64,4 +64,20 @@ class PeriodicLevelRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function nextId($type)
+    {
+        $result = $this->createQueryBuilder('p')
+            ->where('p.type = :type')
+            ->setParameter('type', $type)
+            ->orderBy('p.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$result)
+            return 1 + PeriodicLevel::offsetForType($type);
+
+        return $result->getId() + 1;
+    }
 }
