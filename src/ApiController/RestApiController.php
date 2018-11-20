@@ -114,6 +114,9 @@ class RestApiController extends FOSRestController
         $type = $periodic->getType();
 
         $periodicsToShift = $em->getRepository(PeriodicLevel::class)->findFromDateOfType($type, $periodic->getPeriodEnd());
+        if (!count($periodicsToShift))
+            throw new InvalidParametersException(sprintf("Cannot skip periodic level of index %s: no other level is queued", $index));
+        
         $em->remove($periodic);
 
         foreach ($periodicsToShift as $p) {
