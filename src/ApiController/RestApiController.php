@@ -61,6 +61,7 @@ class RestApiController extends FOSRestController
         $periodics = $em->getRepository(PeriodicLevel::class)->findQueuedOfType($type);
 
         return [
+            'periodic_type' => $type,
             'current' => $currentPeriodic,
             'queued' => $periodics,
         ];
@@ -70,7 +71,7 @@ class RestApiController extends FOSRestController
      * @Rest\Post("/admin/periodic", name="api_admin_append_periodic_level")
      * @Rest\View(StatusCode=201)
      *
-     * @Rest\RequestParam(name="level_id", requirements="[0-9]+")
+     * @Rest\RequestParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
      * @Rest\RequestParam(name="type", requirements="0|1")
      */
     public function appendPeriodicLevel($level_id, $type)
@@ -101,7 +102,7 @@ class RestApiController extends FOSRestController
      * @Rest\Delete("/admin/periodic", name="api_admin_delete_priodic_level")
      * @Rest\View
      * 
-     * @Rest\QueryParam(name="index", requirements="[0-9]+")
+     * @Rest\QueryParam(name="index", requirements={"rule"="[0-9]+", "error_message"="Invalid index"})
      */
     public function deletePeriodicLevel($index)
     {
@@ -115,7 +116,7 @@ class RestApiController extends FOSRestController
 
         $periodicsToShift = $em->getRepository(PeriodicLevel::class)->findFromDateOfType($type, $periodic->getPeriodEnd());
         if (!count($periodicsToShift))
-            throw new InvalidParametersException(sprintf("Cannot skip periodic level of index %s: no other level is queued", $index));
+            throw new InvalidParametersException(sprintf("Cannot skip current level: no other level is queued", $index));
         
         $em->remove($periodic);
 

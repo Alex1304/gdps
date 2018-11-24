@@ -320,6 +320,21 @@ class Level
         return $this;
     }
 
+    /**
+     * @Serializer\VirtualProperty()
+     * @Serializer\SerializedName("creator")
+     */
+    public function getCreatorInfo()
+    {
+        if (!$this->creator)
+            return null;
+
+        return [
+            'id' => $this->creator->getId(),
+            'name' => $this->creator->getName(),
+        ];
+    }
+
     public function getData(): ?string
     {
         return $this->data;

@@ -270,6 +270,15 @@ class Account
         return $this;
     }
 
+    /**
+     * @Serializer\VirtualProperty
+     * @Serializer\SerializedName("roles")
+     */
+    public function getRoles()
+    {
+        return $this->player ? $this->player->getRoles() : ['ROLE_USER'];
+    }
+
     public function getFriendRequestPolicy(): ?int
     {
         return $this->friendRequestPolicy;
