@@ -196,6 +196,16 @@ class Player implements UserInterface
      */
     private $dislikedAccountComments;
 
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $lastQuestId;
+
+    /**
+     * @ORM\Column(type="datetime")
+     */
+    private $nextQuestsAt;
+
     public function __construct()
     {
         $this->levels = new ArrayCollection();
@@ -860,5 +870,29 @@ class Player implements UserInterface
             return [ 'ROLE_ADMIN' ];
 
         return [ 'ROLE_USER' ];
+    }
+
+    public function getLastQuestId(): ?int
+    {
+        return $this->lastQuestId;
+    }
+
+    public function setLastQuestId(int $lastQuestId): self
+    {
+        $this->lastQuestId = $lastQuestId;
+
+        return $this;
+    }
+
+    public function getNextQuestsAt(): ?\DateTimeInterface
+    {
+        return $this->nextQuestsAt;
+    }
+
+    public function setNextQuestsAt(\DateTimeInterface $nextQuestsAt): self
+    {
+        $this->nextQuestsAt = $nextQuestsAt;
+
+        return $this;
     }
 }

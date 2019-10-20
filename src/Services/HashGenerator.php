@@ -8,6 +8,7 @@ namespace App\Services;
 class HashGenerator
 {
     const SALT_1 = 'xI25fpAapCQg';
+    const SALT_2 = 'oC36fpYaPtdg';
 
     private $b64;
     private $xor;
@@ -39,7 +40,8 @@ class HashGenerator
     /**
      * Generates two hashes for the given level. The first hash is on the level data, the second one on the level info
      */
-    public function generateForLevel($level, $periodicID = 0) {
+    public function generateForLevel($level, $periodicID = 0)
+	{
         $result = 'aaaaa';
         $len = strlen($level->getData());
         $divided = intval($len / 40);
@@ -74,4 +76,9 @@ class HashGenerator
             'info' => sha1($info . self::SALT_1)
         ];
     }
+	
+	public function generateForQuests($questString)
+	{
+		return sha1($questString . self::SALT_2);
+	}
 }

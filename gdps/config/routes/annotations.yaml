@@ -1,0 +1,10 @@
+controllers:
+    resource: ../../src/Controller/
+    type: annotation
+    prefix: '/alex1304_gdps'
+    methods: [POST]
+
+api_controller:
+    resource: ../../src/ApiController/
+    type: annotation
+    prefix: '/api'

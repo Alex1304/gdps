@@ -26,7 +26,7 @@ class CommentController extends AbstractController
     public function uploadLevelComment(Security $s, $levelID, $comment, $percent)
     {
     	$em = $this->getDoctrine()->getManager();
-    	$player = $s->getUser();$s->getUser();
+    	$player = $s->getUser();
 
     	$level = $em->getRepository(Level::class)->find($levelID);
 

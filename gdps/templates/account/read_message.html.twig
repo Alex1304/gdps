@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% set user = isSender ? message.recipient : message.author %}
+	6:{{ user.player.name }}:
+	3:{{ user.player.id }}:
+	2:{{ user.id }}:
+	1:{{ message.id }}:
+	4:{{ message.subject }}:
+	8:{{ message.isUnread ? 0 : 1 }}:
+	9:{{ isSender ? 1 : 0 }}:
+	5:{{ message.body }}
+	7:{{ timeFormatter.format(message.postedAt) }}
+{% endblock %}

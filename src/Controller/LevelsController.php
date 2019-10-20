@@ -255,7 +255,7 @@ class LevelsController extends AbstractController
             return $song;
 
         return $this->render('levels/song_info.html.twig', [
-            'song' => $sp->fetchSong($songID),
+            'song' => $song,
         ]);
     }
 

@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% for player in players %}
+		1:{{ player.name }}:
+		2:{{ player.id }}:
+		13:{{ player.coins }}:
+		17:{{ player.userCoins }}:
+		9:{{ player.icon }}:
+		10:{{ player.color1 }}:
+		11:{{ player.color2 }}:
+		14:{{ player.iconType }}:
+		15:{{ player.special }}:
+		16:{{ player.account ? player.account.id : 0 }}:
+		3:{{ player.stars }}:
+		8:{{ player.creatorPoints }}:
+		4:{{ player.demons }}
+		{% if not loop.last %}|{% endif %}
+	{% endfor %}
+	#
+	{{ total }}:
+	{{ page * count }}:
+	{{ count }}
+{% endblock %}

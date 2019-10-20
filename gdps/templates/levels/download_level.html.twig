@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	1:{{ level.id }}:
+	2:{{ level.name }}:
+	3:{{ level.description }}:
+	4:{{ level.data }}:
+	5:{{ level.version }}:
+	6:{% if level.creator %}{{ level.creator.id }}{% else %}0{% endif %}:
+	8:10:
+	9:{{ level.difficulty * 10 }}:
+	10:{{ level.downloadedBy|length }}:
+	11:1:
+	12:{{ level.audioTrack }}:
+	13:{{ level.gameVersion }}:
+	14:{{ level.likedBy|length - level.dislikedBy|length }}:
+	17:{% if level.isDemon %}1{% else %}0{% endif %}:
+	43:{{ level.demonDifficulty }}:
+	25:{% if level.isAuto %}1{% else %}0{% endif %}:
+	18:{{ level.stars }}:
+	19:{{ level.featureScore }}:
+	42:{% if level.isEpic %}1{% else %}0{% endif %}:
+	45:{{ level.objectCount }}:
+	15:{{ level.length }}:
+	30:{% if level.original %}{{ level.original.id }}{% else %}0{% endif %}:
+	31:1:
+	28:{{ uploadedAt }}:
+	29:{{ lastUpdatedAt }}:
+	35:{{ level.customSongID }}:
+	36:{{ level.extraString }}:
+	37:{{ level.coins }}:
+	38:{% if level.hasCoinsVerified %}1{% else %}0{% endif %}:
+	39:{{ level.requestedStars }}:
+	46:1:
+	47:2:
+	48:1:
+	40:{% if level.isLDM %}1{% else %}0{% endif %}:
+	27:{{ pass }}
+	{% if periodicID > 0 %}
+		:41:{{ periodicID }}
+	{% endif %}
+	#
+	{{ hash.data }}
+	#
+	{{ hash.info }}
+	{% if creator is not null %}
+		#
+		{{ creator.playerID }}:
+		{{ creator.name }}:
+		{{ creator.accountID }}
+	{% endif %}
+{% endblock %}

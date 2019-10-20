@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% for message in messages %}
+		{% set user = incoming ? message.author : message.recipient %}
+		6:{{ user.player.name }}:
+		3:{{ user.player.id }}:
+		2:{{ user.id }}:
+		1:{{ message.id }}:
+		4:{{ message.subject }}:
+		8:{{ message.isUnread ? 0 : 1 }}:
+		9:{{ incoming ? 0 : 1 }}:
+		7:{{ timeFormatter.format(message.postedAt) }}
+		{% if not loop.last %}|{% endif %}
+	{% endfor %}
+	#
+	{{ total }}:
+	{{ page * count }}:
+	{{ count }}
+{% endblock %}

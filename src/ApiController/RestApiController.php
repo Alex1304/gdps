@@ -15,6 +15,7 @@ use App\Entity\Level;
 use App\Entity\PeriodicLevel;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
+use App\Services\XORCipher;
 use App\Services\StrictValidator;
 use App\Services\TokenGenerator;
 use App\Exceptions\UnauthorizedException;
@@ -218,4 +219,19 @@ class RestApiController extends FOSRestController
 
         return null;
     }
+	
+	/**
+	 * @Rest\Get("/public/xor", name="api_xor")
+	 * @Rest\View
+	 *
+	 * @Rest\QueryParam(name="message")
+	 * @Rest\QueryParam(name="key")
+	 */
+	public function testXor(XORCipher $xor, Base64URL $b64, $message, $key)
+	{
+		$result = $xor->cipher($b64->decode($message), '' . $key);
+		return [
+			'result' => $result,
+		];
+	}
 }

@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+	{% for key, value in song %}
+		{{ key }}~|~{{ value }}
+		{% if not loop.last %}~|~{% endif %}
+	{% endfor %}
+{% endblock %}

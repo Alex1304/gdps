@@ -1,7 +1,7 @@
 controllers:
     resource: ../../src/Controller/
     type: annotation
-    prefix: '/alex1304_gdps'
+    prefix: '/xxx'
     methods: [POST]
 
 api_controller:

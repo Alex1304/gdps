@@ -78,7 +78,10 @@ class UnregisteredAuthenticator extends AbstractGuardAuthenticator
                 $player->setAccExplosion(0);
                 $player->setStatsLastUpdatedAt(new \DateTime());
                 $player->setCreatorPoints(0);
+				$player->setLastQuestId(0);
+				$player->setNextQuestsAt(new \DateTime());
                 $this->em->persist($player);
+				$this->em->flush();
             }
         }
 
