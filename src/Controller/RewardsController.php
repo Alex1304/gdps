@@ -47,7 +47,7 @@ class RewardsController extends AbstractController
 		$tier3Quest = $tier3Quests[$questInfo['current_quest_number'] % count($tier3Quests)];
 		
 		$questsString = $b64->encode($xor->cipher(join(':', [
-			'pBhg5',
+			'SaKuJ',
 			$player->getId(),
 			$decipheredChk,
 			$player->getDeviceID(),
@@ -58,7 +58,7 @@ class RewardsController extends AbstractController
 			static::questToString($questInfo['current_quest_number'], $tier3Quest),
 		]), XORCipher::KEY_QUESTS));
 		return $this->render('rewards/get_quests.html.twig', [
-			'quests_string' => 'K2jBS' . $questsString,
+			'quests_string' => 'SaKuJ' . $questsString,
 			'hash' => $hg->generateForQuests($questsString)
 		]);
     }
