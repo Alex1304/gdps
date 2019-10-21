@@ -23,6 +23,7 @@ final class Version20191021183016 extends AbstractMigration
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
         $this->addSql('ALTER TABLE chest DROP min_keys, DROP max_keys');
+        $this->addSql("INSERT INTO chest VALUES (NULL, '14400', '20', '50', '1', '4', '0', '1', '5'), (NULL, '86400', '100', '300', '4', '10', '1', '2', '25')");
         $this->addSql('ALTER TABLE player ADD mana_orbs_collected_from_chests BIGINT NOT NULL');
     }
 
