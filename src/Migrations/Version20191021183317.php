@@ -23,6 +23,7 @@ final class Version20191021183317 extends AbstractMigration
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
         $this->addSql('ALTER TABLE chest ADD orb_step INT NOT NULL');
+        $this->addSql("INSERT INTO chest VALUES (NULL, '14400', '20', '50', '1', '4', '0', '1', '5'), (NULL, '86400', '100', '300', '4', '10', '1', '2', '25')");
     }
 
     public function down(Schema $schema) : void
