@@ -13,6 +13,7 @@ class XORCipher
 	const KEY_PRIVATE_MESSAGE_BODY = '14251';
 	const KEY_LEVEL_PASS = '26364';
 	const KEY_QUESTS = '19847';
+	const KEY_CHESTS = '59182';
 
 	/**
 	 * Ciphers a message with the given key using the XOR algorithm.

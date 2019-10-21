@@ -206,6 +206,31 @@ class Player implements UserInterface
      */
     private $nextQuestsAt;
 
+    /**
+     * @ORM\Column(type="datetime")
+     */
+    private $nextSmallChestAt;
+
+    /**
+     * @ORM\Column(type="datetime")
+     */
+    private $nextBigChestAt;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $lastSmallChestCount;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $lastBigChestCount;
+
+    /**
+     * @ORM\Column(type="bigint")
+     */
+    private $manaOrbsCollectedFromChests;
+
     public function __construct()
     {
         $this->levels = new ArrayCollection();
@@ -892,6 +917,66 @@ class Player implements UserInterface
     public function setNextQuestsAt(\DateTimeInterface $nextQuestsAt): self
     {
         $this->nextQuestsAt = $nextQuestsAt;
+
+        return $this;
+    }
+
+    public function getNextSmallChestAt(): ?\DateTimeInterface
+    {
+        return $this->nextSmallChestAt;
+    }
+
+    public function setNextSmallChestAt(\DateTimeInterface $nextSmallChestAt): self
+    {
+        $this->nextSmallChestAt = $nextSmallChestAt;
+
+        return $this;
+    }
+
+    public function getNextBigChestAt(): ?\DateTimeInterface
+    {
+        return $this->nextBigChestAt;
+    }
+
+    public function setNextBigChestAt(\DateTimeInterface $nextBigChestAt): self
+    {
+        $this->nextBigChestAt = $nextBigChestAt;
+
+        return $this;
+    }
+
+    public function getLastSmallChestCount(): ?int
+    {
+        return $this->lastSmallChestCount;
+    }
+
+    public function setLastSmallChestCount(int $lastSmallChestCount): self
+    {
+        $this->lastSmallChestCount = $lastSmallChestCount;
+
+        return $this;
+    }
+
+    public function getLastBigChestCount(): ?int
+    {
+        return $this->lastBigChestCount;
+    }
+
+    public function setLastBigChestCount(int $lastBigChestCount): self
+    {
+        $this->lastBigChestCount = $lastBigChestCount;
+
+        return $this;
+    }
+
+    public function getManaOrbsCollectedFromChests(): ?string
+    {
+        return $this->manaOrbsCollectedFromChests;
+    }
+
+    public function setManaOrbsCollectedFromChests(string $manaOrbsCollectedFromChests): self
+    {
+        $this->manaOrbsCollectedFromChests = $manaOrbsCollectedFromChests;
 
         return $this;
     }

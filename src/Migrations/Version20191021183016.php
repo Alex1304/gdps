@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20191020171941 extends AbstractMigration
+final class Version20191021183016 extends AbstractMigration
 {
     public function getDescription() : string
     {
@@ -22,8 +22,8 @@ final class Version20191020171941 extends AbstractMigration
         // this up() migration is auto-generated, please modify it to your needs
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
-		$this->addSql("SET SQL_MODE='ALLOW_INVALID_DATES';");
-        $this->addSql('ALTER TABLE player ADD last_quest_id INT NOT NULL, ADD next_quests_at DATETIME NOT NULL');
+        $this->addSql('ALTER TABLE chest DROP min_keys, DROP max_keys');
+        $this->addSql('ALTER TABLE player ADD mana_orbs_collected_from_chests BIGINT NOT NULL');
     }
 
     public function down(Schema $schema) : void
@@ -31,6 +31,7 @@ final class Version20191020171941 extends AbstractMigration
         // this down() migration is auto-generated, please modify it to your needs
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
-        $this->addSql('ALTER TABLE player DROP last_quest_id, DROP next_quests_at');
+        $this->addSql('ALTER TABLE chest ADD min_keys INT NOT NULL, ADD max_keys INT NOT NULL');
+        $this->addSql('ALTER TABLE player DROP mana_orbs_collected_from_chests');
     }
 }

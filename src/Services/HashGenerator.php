@@ -9,6 +9,7 @@ class HashGenerator
 {
     const SALT_1 = 'xI25fpAapCQg';
     const SALT_2 = 'oC36fpYaPtdg';
+	const SALT_3 = 'pC26fpYaQCtg';
 
     private $b64;
     private $xor;
@@ -80,5 +81,10 @@ class HashGenerator
 	public function generateForQuests($questString)
 	{
 		return sha1($questString . self::SALT_2);
+	}
+	
+	public function generateForChests($questString)
+	{
+		return sha1($questString . self::SALT_3);
 	}
 }

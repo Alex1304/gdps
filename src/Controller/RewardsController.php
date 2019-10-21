@@ -10,6 +10,7 @@ use App\Services\HashGenerator;
 use App\Services\XORCipher;
 use App\Services\Base64URL;
 use App\Entity\Quest;
+use App\Entity\Chest;
 
 class RewardsController extends AbstractController
 {
@@ -58,11 +59,103 @@ class RewardsController extends AbstractController
 			static::questToString($questInfo['current_quest_number'], $tier2Quest),
 			static::questToString($questInfo['current_quest_number'], $tier3Quest),
 		]), XORCipher::KEY_QUESTS));
-		return $this->render('rewards/get_quests.html.twig', [
-			'quests_string' => 'SaKuJ' . $questsString,
+		return $this->render('rewards/get_rewards.html.twig', [
+			'rewards_string' => 'SaKuJ' . $questsString,
 			'hash' => $hg->generateForQuests($questsString)
 		]);
     }
+	
+	/**
+     * @Rest\Post("/getGJRewards.php", name="get_chests")
+     *
+     * @Rest\RequestParam(name="chk")
+     * @Rest\RequestParam(name="udid")
+     * @Rest\RequestParam(name="rewardType")
+     */
+    public function getChests(Security $s, HashGenerator $hg, XORCipher $xor, Base64URL $b64, $chk, $udid, $rewardType)
+    {
+		$em = $this->getDoctrine()->getManager();
+		$player = $s->getUser();
+		$decipheredChk = $xor->cipher($b64->decode(substr($chk, 5)), XORCipher::KEY_CHESTS);
+		
+		$now = time();
+		$smallChest = $em->getRepository(Chest::class)->find(1);
+		$bigChest = $em->getRepository(Chest::class)->find(2);
+		if (!$smallChest || !$bigChest) {
+			return -1;
+		}
+		if ($player->getLastSmallChestCount() === 0 || $player->getLastBigChestCount() === 0) {
+			$nowDate = new \DateTime();
+			$nowDate->setTimestamp($now);
+			$player->setLastSmallChestCount(1);
+			$player->setNextSmallChestAt($nowDate);
+			$player->setLastBigChestCount(1);
+			$player->setNextBigChestAt($nowDate);
+			$em->persist($player);
+			$em->flush();
+		}
+		$nextSmallChestIn = max(0, $player->getNextSmallChestAt()->getTimestamp() - $now);
+		$nextBigChestIn = max(0, $player->getNextBigChestAt()->getTimestamp() - $now);
+		$smallChestOrbs = $rewardType != 1 ? 0 : rand($smallChest->getMinOrbs() / $smallChest->getOrbStep(), $smallChest->getMaxOrbs() / $smallChest->getOrbStep()) * $smallChest->getOrbStep();
+		$bigChestOrbs = $rewardType != 2 ? 0 : rand($bigChest->getMinOrbs() / $bigChest->getOrbStep(), $bigChest->getMaxOrbs() / $bigChest->getOrbStep()) * $bigChest->getOrbStep();
+		$smallChestKeys = $rewardType != 1 ? 0 : floor(($player->getManaOrbsCollectedFromChests() + $smallChestOrbs) / 500) - floor($player->getManaOrbsCollectedFromChests() / 500);
+		$bigChestKeys = $rewardType != 2 ? 0 : floor(($player->getManaOrbsCollectedFromChests() + $bigChestOrbs) / 500) - floor($player->getManaOrbsCollectedFromChests() / 500);
+		$smallChestContents = $rewardType != 1 ? '-' : join(',', [
+			$smallChestOrbs,
+			rand($smallChest->getMinDiamonds(), $smallChest->getMaxDiamonds()),
+			rand($smallChest->getMinShards(), $smallChest->getMaxShards()),
+			$smallChestKeys,
+		]);
+		$bigChestContents = $rewardType != 2 ? '-' : join(',', [
+			$bigChestOrbs,
+			rand($bigChest->getMinDiamonds(), $bigChest->getMaxDiamonds()),
+			rand($bigChest->getMinShards(), $bigChest->getMaxShards()),
+			$bigChestKeys,
+		]);
+		if ($rewardType != 0) {
+			if ($rewardType == 1) {
+				if ($nextSmallChestIn > 0) {
+					return -1;
+				}
+				$player->setLastSmallChestCount($player->getLastSmallChestCount() + 1);
+				$next = new \DateTime();
+				$nextSmallChestIn = $smallChest->getCooldown();
+				$next->setTimestamp($now + $nextSmallChestIn);
+				$player->setNextSmallChestAt($next);
+				$player->setManaOrbsCollectedFromChests($player->getManaOrbsCollectedFromChests() + $smallChestOrbs);
+			} elseif ($rewardType == 2) {
+				if ($nextBigChestIn > 0) {
+					return -1;
+				}
+				$player->setLastBigChestCount($player->getLastBigChestCount() + 1);
+				$next = new \DateTime();
+				$nextBigChestIn = $bigChest->getCooldown();
+				$next->setTimestamp($now + $nextBigChestIn);
+				$player->setNextBigChestAt($next);
+				$player->setManaOrbsCollectedFromChests($player->getManaOrbsCollectedFromChests() + $bigChestOrbs);
+			}
+			$em->persist($player);
+			$em->flush();
+		}
+		$chestsString = $b64->encode($xor->cipher(join(':', [
+			'IH9Fn',
+			$player->getId(),
+			$decipheredChk,
+			$udid,
+			$player->getAccount() ? $player->getAccount()->getId() : 0,
+			$nextSmallChestIn,
+			$smallChestContents,
+			$player->getLastSmallChestCount(),
+			$nextBigChestIn,
+			$bigChestContents,
+			$player->getLastBigChestCount(),
+			$rewardType,
+		]), XORCipher::KEY_CHESTS));
+		return $this->render('rewards/get_rewards.html.twig', [
+			'rewards_string' => 'GiUXu' . $chestsString,
+			'hash' => $hg->generateForChests($chestsString)
+		]);
+	}
 	
 	private static function questInfo($em, $player)
 	{
