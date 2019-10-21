@@ -18,8 +18,9 @@ class RewardsController extends AbstractController
      * @Rest\Post("/getGJChallenges.php", name="get_quests")
      *
      * @Rest\RequestParam(name="chk")
+     * @Rest\RequestParam(name="udid")
      */
-    public function getQuests(Security $s, HashGenerator $hg, XORCipher $xor, Base64URL $b64, $chk)
+    public function getQuests(Security $s, HashGenerator $hg, XORCipher $xor, Base64URL $b64, $chk, $udid)
     {
 		$em = $this->getDoctrine()->getManager();
 		$player = $s->getUser();
@@ -50,7 +51,7 @@ class RewardsController extends AbstractController
 			'SaKuJ',
 			$player->getId(),
 			$decipheredChk,
-			$player->getDeviceID(),
+			$udid,
 			$player->getAccount() ? $player->getAccount()->getId() : 0,
 			$questInfo['time_left'],
 			static::questToString($questInfo['current_quest_number'], $tier1Quest),
