@@ -11,6 +11,7 @@ use App\Services\XORCipher;
 use App\Services\Base64URL;
 use App\Entity\Quest;
 use App\Entity\Chest;
+use App\Entity\OpenedChest;
 
 class RewardsController extends AbstractController
 {
@@ -79,64 +80,63 @@ class RewardsController extends AbstractController
 		$decipheredChk = $xor->cipher($b64->decode(substr($chk, 5)), XORCipher::KEY_CHESTS);
 		
 		$now = time();
-		$smallChest = $em->getRepository(Chest::class)->find(1);
-		$bigChest = $em->getRepository(Chest::class)->find(2);
+		$smallChest = $em->getRepository(Chest::class)->find(Chest::SMALL);
+		$bigChest = $em->getRepository(Chest::class)->find(Chest::BIG);
 		if (!$smallChest || !$bigChest) {
 			return -1;
 		}
-		if ($player->getLastSmallChestCount() === 0 || $player->getLastBigChestCount() === 0) {
-			$nowDate = new \DateTime();
-			$nowDate->setTimestamp($now);
-			$player->setLastSmallChestCount(1);
-			$player->setNextSmallChestAt($nowDate);
-			$player->setLastBigChestCount(1);
-			$player->setNextBigChestAt($nowDate);
-			$em->persist($player);
+		
+		$lastSmallChest = $em->getRepository(OpenedChest::class)->findMostRecentChest($player, Chest::SMALL);
+		$lastBigChest = $em->getRepository(OpenedChest::class)->findMostRecentChest($player, Chest::BIG);
+		$totalOrbs = $em->getRepository(OpenedChest::class)->totalOrbs($player);
+		
+		$nextSmallChestIn = $lastSmallChest ? max(0, $smallChest->getCooldown() + $lastSmallChest->getOpenedAt()->getTimestamp() - $now) : 0;
+		$nextBigChestIn = $lastBigChest ? max(0, $bigChest->getCooldown() + $lastBigChest->getOpenedAt()->getTimestamp() - $now) : 0;
+		
+		if ($rewardType == 1 && $nextSmallChestIn === 0) {
+			$orbs = rand($smallChest->getMinOrbs() / $smallChest->getOrbStep(), $smallChest->getMaxOrbs() / $smallChest->getOrbStep()) * $smallChest->getOrbStep();
+			$demonKeys = floor(($totalOrbs + $orbs) / 500) - floor($totalOrbs / 500);
+			$diamonds = rand($smallChest->getMinDiamonds(), $smallChest->getMaxDiamonds());
+			$shards = rand($smallChest->getMinShards(), $smallChest->getMaxShards());
+			$newSmallChest = new OpenedChest($player, Chest::SMALL);
+			$newSmallChest->setOrbs($orbs)
+				->setDemonKeys($demonKeys)
+				->setDiamonds($diamonds)
+				->setShards($shards)
+				->setOpenedAt(new \DateTime());
+			$em->persist($newSmallChest);
 			$em->flush();
-		}
-		$nextSmallChestIn = max(0, $player->getNextSmallChestAt()->getTimestamp() - $now);
-		$nextBigChestIn = max(0, $player->getNextBigChestAt()->getTimestamp() - $now);
-		$smallChestOrbs = $rewardType != 1 ? 0 : rand($smallChest->getMinOrbs() / $smallChest->getOrbStep(), $smallChest->getMaxOrbs() / $smallChest->getOrbStep()) * $smallChest->getOrbStep();
-		$bigChestOrbs = $rewardType != 2 ? 0 : rand($bigChest->getMinOrbs() / $bigChest->getOrbStep(), $bigChest->getMaxOrbs() / $bigChest->getOrbStep()) * $bigChest->getOrbStep();
-		$smallChestKeys = $rewardType != 1 ? 0 : floor(($player->getManaOrbsCollectedFromChests() + $smallChestOrbs) / 500) - floor($player->getManaOrbsCollectedFromChests() / 500);
-		$bigChestKeys = $rewardType != 2 ? 0 : floor(($player->getManaOrbsCollectedFromChests() + $bigChestOrbs) / 500) - floor($player->getManaOrbsCollectedFromChests() / 500);
-		$smallChestContents = $rewardType != 1 ? '-' : join(',', [
-			$smallChestOrbs,
-			rand($smallChest->getMinDiamonds(), $smallChest->getMaxDiamonds()),
-			rand($smallChest->getMinShards(), $smallChest->getMaxShards()),
-			$smallChestKeys,
-		]);
-		$bigChestContents = $rewardType != 2 ? '-' : join(',', [
-			$bigChestOrbs,
-			rand($bigChest->getMinDiamonds(), $bigChest->getMaxDiamonds()),
-			rand($bigChest->getMinShards(), $bigChest->getMaxShards()),
-			$bigChestKeys,
-		]);
-		if ($rewardType != 0) {
-			if ($rewardType == 1) {
-				if ($nextSmallChestIn > 0) {
-					return -1;
-				}
-				$player->setLastSmallChestCount($player->getLastSmallChestCount() + 1);
-				$next = new \DateTime();
-				$nextSmallChestIn = $smallChest->getCooldown();
-				$next->setTimestamp($now + $nextSmallChestIn);
-				$player->setNextSmallChestAt($next);
-				$player->setManaOrbsCollectedFromChests($player->getManaOrbsCollectedFromChests() + $smallChestOrbs);
-			} elseif ($rewardType == 2) {
-				if ($nextBigChestIn > 0) {
-					return -1;
-				}
-				$player->setLastBigChestCount($player->getLastBigChestCount() + 1);
-				$next = new \DateTime();
-				$nextBigChestIn = $bigChest->getCooldown();
-				$next->setTimestamp($now + $nextBigChestIn);
-				$player->setNextBigChestAt($next);
-				$player->setManaOrbsCollectedFromChests($player->getManaOrbsCollectedFromChests() + $bigChestOrbs);
-			}
-			$em->persist($player);
+			$nextSmallChestIn = $smallChest->getCooldown();
+			$lastSmallChest = $newSmallChest;
+		} elseif ($rewardType == 2 && $nextBigChestIn === 0) {
+			$orbs = rand($bigChest->getMinOrbs() / $bigChest->getOrbStep(), $bigChest->getMaxOrbs() / $bigChest->getOrbStep()) * $bigChest->getOrbStep();
+			$demonKeys = floor(($totalOrbs + $orbs) / 500) - floor($totalOrbs / 500);
+			$diamonds = rand($bigChest->getMinDiamonds(), $bigChest->getMaxDiamonds());
+			$shards = rand($bigChest->getMinShards(), $bigChest->getMaxShards());
+			$newBigChest = new OpenedChest($player, Chest::BIG);
+			$newBigChest->setOrbs($orbs)
+				->setDemonKeys($demonKeys)
+				->setDiamonds($diamonds)
+				->setShards($shards)
+				->setOpenedAt(new \DateTime());
+			$em->persist($newBigChest);
 			$em->flush();
+			$nextBigChestIn = $smallChest->getCooldown();
+			$lastBigChest = $newBigChest;
 		}
+		
+		$smallChestContents = !$lastSmallChest ? '-' : join(',', [
+			$lastSmallChest->getOrbs(),
+			$lastSmallChest->getDiamonds(),
+			$lastSmallChest->getShards(),
+			$lastSmallChest->getDemonKeys(),
+		]);
+		$bigChestContents = !$lastBigChest ? '-' : join(',', [
+			$lastBigChest->getOrbs(),
+			$lastBigChest->getDiamonds(),
+			$lastBigChest->getShards(),
+			$lastBigChest->getDemonKeys(),
+		]);
 		$chestsString = $b64->encode($xor->cipher(join(':', [
 			'IH9Fn',
 			$player->getId(),
@@ -145,10 +145,10 @@ class RewardsController extends AbstractController
 			$player->getAccount() ? $player->getAccount()->getId() : 0,
 			$nextSmallChestIn,
 			$smallChestContents,
-			$player->getLastSmallChestCount(),
+			$lastSmallChest ? $lastSmallChest->getId() : 0,
 			$nextBigChestIn,
 			$bigChestContents,
-			$player->getLastBigChestCount(),
+			$lastBigChest ? $lastBigChest->getId() : 0,
 			$rewardType,
 		]), XORCipher::KEY_CHESTS));
 		return $this->render('rewards/get_rewards.html.twig', [

@@ -9,6 +9,9 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class Chest
 {
+	const SMALL = 1;
+	const BIG = 2;
+	
     /**
      * @ORM\Id()
      * @ORM\GeneratedValue()
