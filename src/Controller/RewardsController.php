@@ -121,7 +121,7 @@ class RewardsController extends AbstractController
 				->setOpenedAt(new \DateTime());
 			$em->persist($newBigChest);
 			$em->flush();
-			$nextBigChestIn = $smallChest->getCooldown();
+			$nextBigChestIn = $bigChest->getCooldown();
 			$lastBigChest = $newBigChest;
 		}
 		
