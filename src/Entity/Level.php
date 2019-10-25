@@ -256,11 +256,6 @@ class Level
      */
     private $levelScores;
 
-    /**
-     * @ORM\OneToOne(targetEntity="App\Entity\LevelData", mappedBy="level", cascade={"persist", "remove"})
-     */
-    private $levelData;
-
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
@@ -832,23 +827,6 @@ class Level
             if ($levelScore->getLevel() === $this) {
                 $levelScore->setLevel(null);
             }
-        }
-
-        return $this;
-    }
-
-    public function getLevelData(): ?LevelData
-    {
-        return $this->levelData;
-    }
-
-    public function setLevelData(LevelData $levelData): self
-    {
-        $this->levelData = $levelData;
-
-        // set the owning side of the relation if necessary
-        if ($this !== $levelData->getLevel()) {
-            $levelData->setLevel($this);
         }
 
         return $this;

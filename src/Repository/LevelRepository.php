@@ -22,7 +22,18 @@ class LevelRepository extends ServiceEntityRepository
     /**
      * Returns a query builder with prefilled info to have easy access to like count
      */
-    private function queryBuilderTemplate()
+    private function fastQbTemplate()
+    {
+        return $this->getEntityManager()->createQueryBuilder()
+			->select('l')
+            ->from('App\Entity\Level', 'l')
+            ->where('l.isUnlisted = 0');
+    }
+
+    /**
+     * Returns a query builder with prefilled info to have easy access to like count
+     */
+    private function likeSortQbTemplate()
     {
         return $this->getEntityManager()->createQueryBuilder()
             ->select('l, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount')
@@ -37,7 +48,7 @@ class LevelRepository extends ServiceEntityRepository
     /**
      * Returns a query builder with prefilled info to have easy access to download count
      */
-    private function queryBuilderTemplate2()
+    private function downloadSortQbTemplate()
     {
         return $this->getEntityManager()->createQueryBuilder()
             ->select('l, COUNT(downloads) AS HIDDEN downloadCount')
@@ -53,11 +64,21 @@ class LevelRepository extends ServiceEntityRepository
      */
     private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        $result = $qb->getQuery()->getResult();
+        $result = $qb
+			->setFirstResult($page * $count)
+			->setMaxResults($count)
+			->getQuery()
+			->getResult();
+		$totalCount = $qb
+			->setFirstResult(null)
+			->setMaxResults(null)
+			->select('COUNT(l.id)')
+			->getQuery()
+			->getSingleScalarResult();
 
         return [
-            'result' => array_slice($result, $page * $count, $count),
-            'total' => count($result),
+            'result' => $result,
+            'total' => $totalCount,
         ];
     }
 
@@ -143,7 +164,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function searchLevels($keywords, $difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate();
+        $qb = $this->likeSortQbTemplate();
 
         if (is_numeric($keywords)) {
             $qb->andWhere('l.id = :keywordsID')
@@ -163,7 +184,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function mostDownloadedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate2();
+        $qb = $this->downloadSortQbTemplate();
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
 
@@ -175,7 +196,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function mostLikedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate();
+        $qb = $this->likeSortQbTemplate();
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
         
@@ -187,7 +208,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function trendingLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->likeSortQbTemplate()
             ->andWhere('l.uploadedAt > :interval')
             ->setParameter('interval', new \DateTime("1 week ago"))
             ->having('likeCount > 0');
@@ -202,7 +223,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function recentLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->orderBy('l.uploadedAt', 'DESC');
 
         $this->applyFilters($qb, $difficulties, $lengths, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels);
@@ -215,7 +236,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function levelsByUser($playerID, $player, int $page)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->join('l.creator', 'creator');
 
         if ($player && $player->getId() == $playerID)
@@ -234,7 +255,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function featuredLevels(int $page)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->andWhere('l.featureScore <> 0')
             ->orderBy('l.featureScore DESC, l.id', 'DESC');
 
@@ -249,7 +270,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function magicLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->andWhere('l.objectCount > 25000')
             ->andWhere('l.isLDM = 1')
             ->andWhere('l.length > 2')
@@ -265,7 +286,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function mapPackLevels($levelList, int $page)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->andWhere($qb->expr()->in('l.id', explode(',', $levelList)))
             ->orderBy('l.featureScore DESC, l.id', 'DESC');
 
@@ -277,7 +298,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function awardedLevels($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->andWhere('l.rewardsGivenAt IS NOT NULL')
             ->andWhere('(l.stars > 0 OR l.hasCoinsVerified = 1)')
             ->orderBy('l.rewardsGivenAt', 'DESC');
@@ -292,7 +313,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function levelsByFollowed($difficulties, $lengths, int $page, bool $uncompleted, bool $onlyCompleted, bool $featured, bool $original, bool $twoPlayer, bool $coins, bool $epic, ?int $demonFilter, ?bool $star, ?bool $noStar, ?int $song, ?int $customSong, $completedLevels, $followed)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->orderBy('l.uploadedAt', 'DESC');
 
         $qb->join('l.creator', 'c')
@@ -309,7 +330,7 @@ class LevelRepository extends ServiceEntityRepository
      */
     public function hallOfFame(int $page)
     {
-        $qb = $this->queryBuilderTemplate()
+        $qb = $this->fastQbTemplate()
             ->andWhere('l.isEpic = 1')
             ->orderby('l.id', 'DESC');
 

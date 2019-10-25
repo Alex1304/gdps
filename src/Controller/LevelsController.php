@@ -89,7 +89,7 @@ class LevelsController extends AbstractController
         $level->setDescription($levelDesc ?? '');
 		$levelData = new LevelData();
         $levelData->setData($levelString);
-		$level->setLevelData($levelData);
+		$levelData->setLevel($level);
         $level->setAudioTrack($audioTrack);
         $level->setCustomSongID($songID);
         $level->setGameVersion($gameVersion);
@@ -106,6 +106,7 @@ class LevelsController extends AbstractController
 
         $em->persist($s->getUser());
         $em->persist($level);
+        $em->persist($levelData);
         $em->flush();
 
         return $level->getId();
@@ -301,13 +302,16 @@ class LevelsController extends AbstractController
         ] : null;
 
         $periodicID = $periodic ? $periodic->getId() : 0;
+		
+		$levelData = $em->getRepository(LevelData::class)->forLevelOfId($levelID)->getData();
 
         return $this->render('levels/download_level.html.twig', [
             'level' => $level,
+			'levelData' => $levelData,
             'uploadedAt' => $tf->format($level->getUploadedAt()),
             'lastUpdatedAt' => $tf->format($level->getLastUpdatedAt()),
             'pass' => $level->getPassword() ? $b64->encode($xor->cipher($level->getPassword(), XORCipher::KEY_LEVEL_PASS)) : '0',
-            'hash' => $hg->generateForLevel($level, $periodicID),
+            'hash' => $hg->generateForLevel($level, $levelData, $periodicID),
             'periodicID' => $periodicID,
             'creator' => $creator,
         ]);

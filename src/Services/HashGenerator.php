@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Doctrine\ORM\EntityManagerInterface;
+
 /**
  * Services that generates a hash for various components of the game
  */
@@ -41,10 +43,9 @@ class HashGenerator
     /**
      * Generates two hashes for the given level. The first hash is on the level data, the second one on the level info
      */
-    public function generateForLevel($level, $periodicID = 0)
+    public function generateForLevel($level, $data, $periodicID = 0)
 	{
         $result = 'aaaaa';
-		$data = $level->getLevelData()->getData();
         $len = strlen($data);
         $divided = intval($len / 40);
         $p = 0;

@@ -19,32 +19,13 @@ class LevelDataRepository extends ServiceEntityRepository
         parent::__construct($registry, LevelData::class);
     }
 
-    // /**
-    //  * @return LevelData[] Returns an array of LevelData objects
-    //  */
-    /*
-    public function findByExampleField($value)
-    {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('l.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
-
-    /*
-    public function findOneBySomeField($value): ?LevelData
-    {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
-    }
-    */
+    public function forLevelOfId($id)
+	{
+		return $this->createQueryBuilder('d')
+			->join('d.level', 'l')
+			->where('l.id = :id')
+			->setParameter('id', $id)
+			->getQuery()
+			->getOneOrNullResult();
+	}
 }
