@@ -46,11 +46,6 @@ class Level
     private $creator;
 
     /**
-     * @ORM\Column(type="text")
-     */
-    private $data;
-
-    /**
      * @ORM\Column(type="integer")
      *
      * @Serializer\Expose
@@ -261,6 +256,11 @@ class Level
      */
     private $levelScores;
 
+    /**
+     * @ORM\OneToOne(targetEntity="App\Entity\LevelData", mappedBy="level", cascade={"persist", "remove"})
+     */
+    private $levelData;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
@@ -333,18 +333,6 @@ class Level
             'id' => $this->creator->getId(),
             'name' => $this->creator->getName(),
         ];
-    }
-
-    public function getData(): ?string
-    {
-        return $this->data;
-    }
-
-    public function setData(string $data): self
-    {
-        $this->data = $data;
-
-        return $this;
     }
 
     public function getAudioTrack(): ?int
@@ -844,6 +832,23 @@ class Level
             if ($levelScore->getLevel() === $this) {
                 $levelScore->setLevel(null);
             }
+        }
+
+        return $this;
+    }
+
+    public function getLevelData(): ?LevelData
+    {
+        return $this->levelData;
+    }
+
+    public function setLevelData(LevelData $levelData): self
+    {
+        $this->levelData = $levelData;
+
+        // set the owning side of the relation if necessary
+        if ($this !== $levelData->getLevel()) {
+            $levelData->setLevel($this);
         }
 
         return $this;

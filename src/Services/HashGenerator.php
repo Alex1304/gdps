@@ -44,7 +44,8 @@ class HashGenerator
     public function generateForLevel($level, $periodicID = 0)
 	{
         $result = 'aaaaa';
-        $len = strlen($level->getData());
+		$data = $level->getLevelData()->getData();
+        $len = strlen($data);
         $divided = intval($len / 40);
         $p = 0;
 
@@ -52,7 +53,7 @@ class HashGenerator
             if($p > 39)
                 break;
 
-            $result[$p] = $level->getData()[$k]; 
+            $result[$p] = $data[$k]; 
             $p++;
         }
 

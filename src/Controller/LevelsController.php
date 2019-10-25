@@ -13,6 +13,7 @@ use App\Services\XORCipher;
 use App\Services\TimeFormatter;
 use App\Services\DifficultyCalculator;
 use App\Entity\Level;
+use App\Entity\LevelData;
 use App\Entity\LevelComment;
 use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
@@ -78,17 +79,17 @@ class LevelsController extends AbstractController
             } else {
                 $level = $levelWithSameName;
             }
-        } else
+        } else {
             $level = $em->getRepository(Level::class)->find($levelID);
+		}
 
         if (!$level)
             return -1;
 
         $level->setDescription($levelDesc ?? '');
-        if (substr($levelString, 0, 3) == 'kS1')
-            $level->setData($b64->encode(gzcompress($levelString)));
-        else
-            $level->setData($levelString);
+		$levelData = new LevelData();
+        $levelData->setData($levelString);
+		$level->setLevelData($levelData);
         $level->setAudioTrack($audioTrack);
         $level->setCustomSongID($songID);
         $level->setGameVersion($gameVersion);
@@ -200,7 +201,7 @@ class LevelsController extends AbstractController
                     $friendsArray[] = $other->getId();
                 }
 
-                $query = $em->getRepository(Level::class)->levelsByFollowed($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, implode(',', $friendsArray));
+                $query = $em->getRepository(Level::class)->levelsByFollowed($diff, $len, $page, $uncompleted, $onlyCompleted, $featured, $original, $twoPlayer, $coins, $epic, $demonFilter, $star, $noStar, $song, $customSong, $completedLevels, join(',', $friendsArray));
                 break;
             case 16:
                 $query = $em->getRepository(Level::class)->hallOfFame($page);
