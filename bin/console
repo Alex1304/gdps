@@ -8,6 +8,7 @@ use Symfony\Component\Debug\Debug;
 use Symfony\Component\Dotenv\Dotenv;
 
 set_time_limit(0);
+umask(0000);
 
 require __DIR__.'/../vendor/autoload.php';
 
@@ -27,8 +28,6 @@ $env = $input->getParameterOption(['--env', '-e'], $_SERVER['APP_ENV'] ?? 'dev',
 $debug = (bool) ($_SERVER['APP_DEBUG'] ?? ('prod' !== $env)) && !$input->hasParameterOption('--no-debug', true);
 
 if ($debug) {
-    umask(0000);
-
     if (class_exists(Debug::class)) {
         Debug::enable();
     }
