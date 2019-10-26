@@ -22,7 +22,7 @@ class LevelData
     private $data;
 
     /**
-     * @ORM\OneToOne(targetEntity="App\Entity\Level", inversedBy="levelData", cascade={"persist", "remove"})
+     * @ORM\OneToOne(targetEntity="App\Entity\Level", cascade={"persist", "remove"})
      * @ORM\JoinColumn(nullable=false)
      */
     private $level;

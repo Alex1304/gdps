@@ -306,15 +306,19 @@ class LevelsController extends AbstractController
 
         $periodicID = $periodic ? $periodic->getId() : 0;
 		
-		$levelData = $em->getRepository(LevelData::class)->forLevelOfId($levelID)->getData();
+		$levelData = $em->getRepository(LevelData::class)->forLevelOfId($levelID);
+		
+		if (!$levelData) {
+			return -1;
+		}
 
         return $this->render('levels/download_level.html.twig', [
             'level' => $level,
-			'levelData' => $levelData,
+			'levelData' => $levelData->getData(),
             'uploadedAt' => $tf->format($level->getUploadedAt()),
             'lastUpdatedAt' => $tf->format($level->getLastUpdatedAt()),
             'pass' => $level->getPassword() ? $b64->encode($xor->cipher($level->getPassword(), XORCipher::KEY_LEVEL_PASS)) : '0',
-            'hash' => $hg->generateForLevel($level, $levelData, $periodicID),
+            'hash' => $hg->generateForLevel($level, $levelData->getData(), $periodicID),
             'periodicID' => $periodicID,
             'creator' => $creator,
         ]);
