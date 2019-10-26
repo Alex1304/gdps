@@ -269,7 +269,7 @@ class LevelsController extends AbstractController
      * @Rest\RequestParam(name="levelID")
      * @Rest\RequestParam(name="inc", nullable=true, default=0)
      */
-    public function downloadLevel(Security $s, SongProvider $sp, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf, $levelID, $inc)
+    public function downloadLevel(Security $s, HashGenerator $hg, Base64URL $b64, XORCipher $xor, TimeFormatter $tf, $levelID, $inc)
     {
         $em = $this->getDoctrine()->getManager();
 
