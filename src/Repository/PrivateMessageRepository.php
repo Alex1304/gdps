@@ -24,11 +24,21 @@ class PrivateMessageRepository extends ServiceEntityRepository
      */
     private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        $result = $qb->getQuery()->getResult();
+        $result = $qb
+			->setFirstResult($page * $count)
+			->setMaxResults($count)
+			->getQuery()
+			->getResult();
+		$totalCount = $qb
+			->setFirstResult(null)
+			->setMaxResults(null)
+			->select('COUNT(m.id)')
+			->getQuery()
+			->getSingleScalarResult();
 
         return [
-            'result' => array_slice($result, $page * $count, $count),
-            'total' => count($result),
+            'result' => $result,
+            'total' => $totalCount,
         ];
     }
 

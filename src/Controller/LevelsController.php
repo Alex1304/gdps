@@ -76,6 +76,8 @@ class LevelsController extends AbstractController
                 $level->setIsAuto(false);
                 $level->setHasCoinsVerified(false);
                 $level->setRewardsGivenAt(null);
+				$level->setDownloads(0);
+				$level->setLikes(0);
             } else {
                 $level = $levelWithSameName;
             }
@@ -290,6 +292,7 @@ class LevelsController extends AbstractController
 
         if ($inc) {
             $s->getUser()->addDownloadedLevel($level);
+			$level->setDownloads(count($level->getDownloadedBy()));
             $em->persist($s->getUser());
             $em->persist($level);
             $em->flush();
@@ -342,6 +345,8 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevel($level);
                     $player->removeLikedLevel($level);
                 }
+				$level->setLikes(count($level->getLikedBy()) - count($level->getDislikedBy()));
+				$em->persist($level);
                 break;
             case 2:
                 $comment = $em->getRepository(LevelComment::class)->find($itemID);
@@ -355,6 +360,8 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevelComment($comment);
                     $player->removeLikedLevelComment($comment);
                 }
+				$comment->setLikes(count($comment->getLikedBy()) - count($comment->getDislikedBy()));
+				$em->persist($comment);
                 break;
             case 3:
                 $comment = $em->getRepository(AccountComment::class)->find($itemID);
@@ -368,6 +375,8 @@ class LevelsController extends AbstractController
                     $player->addDislikedAccountComment($comment);
                     $player->removeLikedAccountComment($comment);
                 }
+				$comment->setLikes(count($comment->getLikedBy()) - count($comment->getDislikedBy()));
+				$em->persist($comment);
                 break;
             default:
                 return -1;

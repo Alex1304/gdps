@@ -46,6 +46,11 @@ class AccountComment
      */
     private $dislikedBy;
 
+    /**
+     * @ORM\Column(type="bigint")
+     */
+    private $likes;
+
     public function __construct()
     {
         $this->likedBy = new ArrayCollection();
@@ -141,6 +146,18 @@ class AccountComment
         if ($this->dislikedBy->contains($dislikedBy)) {
             $this->dislikedBy->removeElement($dislikedBy);
         }
+
+        return $this;
+    }
+
+    public function getLikes(): ?string
+    {
+        return $this->likes;
+    }
+
+    public function setLikes(string $likes): self
+    {
+        $this->likes = $likes;
 
         return $this;
     }

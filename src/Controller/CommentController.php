@@ -38,6 +38,7 @@ class CommentController extends AbstractController
     	$lvlcomment->setContent($comment);
     	$lvlcomment->setAuthor($player);
     	$lvlcomment->setPercent($percent);
+    	$lvlcomment->setLikes(0);
     	$level->addLevelComment($lvlcomment);
 
     	$em->persist($lvlcomment);
@@ -135,12 +136,13 @@ class CommentController extends AbstractController
     	$em = $this->getDoctrine()->getManager();
     	$player = $s->getUser();
 
-    	$lvlcomment = new AccountComment();
-    	$lvlcomment->setPostedAt(new \DateTime());
-    	$lvlcomment->setContent($comment);
-    	$lvlcomment->setAuthor($player->getAccount());
+    	$accountComment = new AccountComment();
+    	$accountComment->setPostedAt(new \DateTime());
+    	$accountComment->setContent($comment);
+    	$accountComment->setAuthor($player->getAccount());
+    	$accountComment->setLikes(0);
 
-    	$em->persist($lvlcomment);
+    	$em->persist($accountComment);
     	$em->flush();
 
         return 1;

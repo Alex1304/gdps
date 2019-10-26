@@ -25,11 +25,8 @@ class LevelCommentRepository extends ServiceEntityRepository
     private function queryBuilderTemplate()
     {
         return $this->getEntityManager()->createQueryBuilder()
-            ->select('c, (COUNT(likes) - COUNT(dislikes)) AS HIDDEN likeCount')
+            ->select('c')
             ->from('App\Entity\LevelComment', 'c')
-            ->leftJoin('c.likedBy', 'likes')
-            ->leftJoin('c.dislikedBy', 'dislikes')
-            ->groupBy('c.id')
             ->orderBy('c.postedAt', 'DESC');
     }
 
@@ -38,11 +35,21 @@ class LevelCommentRepository extends ServiceEntityRepository
      */
     private function getPaginatedResult(&$qb, $page, $count = 10)
     {
-        $result = $qb->getQuery()->getResult();
+        $result = $qb
+			->setFirstResult($page * $count)
+			->setMaxResults($count)
+			->getQuery()
+			->getResult();
+		$totalCount = $qb
+			->setFirstResult(null)
+			->setMaxResults(null)
+			->select('COUNT(c.id)')
+			->getQuery()
+			->getSingleScalarResult();
 
         return [
-            'result' => array_slice($result, $page * $count, $count),
-            'total' => count($result),
+            'result' => $result,
+            'total' => $totalCount,
         ];
     }
 
@@ -57,7 +64,7 @@ class LevelCommentRepository extends ServiceEntityRepository
             ->setParameter('id', $levelID);
 
         if ($top)
-            $qb->orderBy('likeCount', 'DESC');
+            $qb->orderBy('c.likes', 'DESC');
 
         return $this->getPaginatedResult($qb, $page, $count);
     }
@@ -73,7 +80,7 @@ class LevelCommentRepository extends ServiceEntityRepository
             ->setParameter('id', $authorID);
 
         if ($top)
-            $qb->orderBy('likeCount', 'DESC');
+            $qb->orderBy('c.likes', 'DESC');
 
         return $this->getPaginatedResult($qb, $page, $count);
     }

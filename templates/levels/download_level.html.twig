@@ -9,11 +9,11 @@
 	6:{% if level.creator %}{{ level.creator.id }}{% else %}0{% endif %}:
 	8:10:
 	9:{{ level.difficulty * 10 }}:
-	10:{{ level.downloadedBy|length }}:
+	10:{{ level.downloads }}:
 	11:1:
 	12:{{ level.audioTrack }}:
 	13:{{ level.gameVersion }}:
-	14:{{ level.likedBy|length - level.dislikedBy|length }}:
+	14:{{ level.likes }}:
 	17:{% if level.isDemon %}1{% else %}0{% endif %}:
 	43:{{ level.demonDifficulty }}:
 	25:{% if level.isAuto %}1{% else %}0{% endif %}:

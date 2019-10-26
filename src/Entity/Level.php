@@ -256,6 +256,16 @@ class Level
      */
     private $levelScores;
 
+    /**
+     * @ORM\Column(type="bigint")
+     */
+    private $downloads;
+
+    /**
+     * @ORM\Column(type="bigint")
+     */
+    private $likes;
+
     public function __construct()
     {
         $this->downloadedBy = new ArrayCollection();
@@ -828,6 +838,30 @@ class Level
                 $levelScore->setLevel(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getDownloads(): ?string
+    {
+        return $this->downloads;
+    }
+
+    public function setDownloads(string $downloads): self
+    {
+        $this->downloads = $downloads;
+
+        return $this;
+    }
+
+    public function getLikes(): ?string
+    {
+        return $this->likes;
+    }
+
+    public function setLikes(string $likes): self
+    {
+        $this->likes = $likes;
 
         return $this;
     }
