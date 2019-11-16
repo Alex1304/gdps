@@ -24,7 +24,7 @@ class DifficultyCalculator
 		$this->em = $em;
 	}
 
-	private function getDifficultyForStars($stars)
+	public function getDifficultyForStars($stars)
 	{
 		if (!$stars || $stars < 0)
 			return self::NA;

@@ -15,6 +15,7 @@ use App\Entity\Level;
 use App\Entity\PeriodicLevel;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
+use App\Services\DifficultyCalculator;
 use App\Services\XORCipher;
 use App\Services\StrictValidator;
 use App\Services\TokenGenerator;
@@ -128,6 +129,41 @@ class RestApiController extends FOSRestController
             $p->setPeriodEnd($end->sub(PeriodicLevel::intervalForType($type)));
         }
 
+        $em->flush();
+
+        return null;
+    }
+
+    /**
+     * @Rest\Patch("/admin/apply-rating", name="api_admin_apply_rating")
+     * @Rest\View
+     *
+     * @Rest\RequestParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
+	 * @Rest\RequestParam(name="stars", nullable=true, default=null, requirements={"rule"="[0-9]|10", "error_message"="Invalid amount of stars"})
+	 * @Rest\RequestParam(name="verify_coins", nullable=true, default=null)
+	 * @Rest\RequestParam(name="is_epic", nullable=true, default=null)
+	 * @Rest\RequestParam(name="featured_score", nullable=true, default=null, requirements={"rule"="[0-9]+", "error_message"="Invalid featured score"})
+     */
+    public function applyRating(DifficultyCalculator $dc, $level_id, $stars, $verify_coins, $is_epic, $featured_score)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $level = $em->getRepository(Level::class)->find($level_id);
+        if (!$level) {
+            throw new InvalidParametersException("Unknown level");
+		}
+		if ($stars || $verify_coins){
+			$level->setRewardsGivenAt(new \DateTime());
+		}
+		if ($stars) {
+			$level->setStars($stars);
+			$level->setDifficulty($dc->getDifficultyForStars($stars));
+		}
+        $level->setHasCoinsVerified(!!($verify_coins ?? $level->getHasCoinsVerified()));
+		$level->setIsEpic(!!($is_epic ?? $level->getIsEpic()));
+		$level->setFeatureScore($featured_score ?? $level->getFeatureScore());
+		
+        $em->persist($level);
         $em->flush();
 
         return null;

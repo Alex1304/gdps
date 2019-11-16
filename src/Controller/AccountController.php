@@ -72,6 +72,14 @@ class AccountController extends AbstractController
     {
         // Already handled by PlainPasswordAuthenticator, nothing to do here.
     }
+	
+	/**
+	 * @Rest\Get("/accounts/accountManagement.php", name="account_management")
+	 */
+	public function accountManagement()
+	{
+		return $this->redirect(getenv('DASHBOARD_ROOT_URL'));
+	}
 
     /**
      * @Rest\Post("/getGJUserInfo20.php", name="get_user_info")

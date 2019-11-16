@@ -306,7 +306,7 @@ class LevelsController extends AbstractController
 
         $periodicID = $periodic ? $periodic->getId() : 0;
 		
-		$levelData = $em->getRepository(LevelData::class)->forLevelOfId($levelID);
+		$levelData = $em->getRepository(LevelData::class)->forLevelOfId($level->getId());
 		
 		if (!$levelData) {
 			return -1;

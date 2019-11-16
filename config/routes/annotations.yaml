@@ -2,7 +2,7 @@ controllers:
     resource: ../../src/Controller/
     type: annotation
     prefix: '/xxx'
-    methods: [POST]
+    methods: [GET,POST]
 
 api_controller:
     resource: ../../src/ApiController/
