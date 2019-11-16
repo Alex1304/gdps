@@ -20,21 +20,34 @@ class LevelScoreRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, LevelScore::class);
     }
+	
+	private function addPeriodicFilter(&$qb, $periodic)
+	{
+		$qb = $qb->leftJoin('s.periodic', 'p');
+		if ($periodic) {
+			return $qb->andWhere('p.id = :pid')->setParameter('pid', $periodic->getId());
+		} else {
+			return $qb->andWhere('p.id IS NULL');
+		}
+	}
 
-    public function findExistingScore($accountID, $levelID): ?LevelScore
+    public function findExistingScore($accountID, $levelID, $periodic): ?LevelScore
     {
-        return $this->createQueryBuilder('s')
+		$qb = $this->createQueryBuilder('s')
             ->join('s.account', 'a')
             ->join('s.level', 'l')
-            ->where('a.id = :aid AND l.id = :lid')
+            ->where('a.id = :aid')
+			->andWhere('l.id = :lid')
             ->setParameter('aid', $accountID)
             ->setParameter('lid', $levelID)
-            ->setMaxResults(1)
-            ->getQuery()
+			->setMaxResults(1);
+        $qb = $this->addPeriodicFilter($qb, $periodic);
+		
+        return $qb->getQuery()
             ->getOneOrNullResult();
     }
 
-    public function friendsLeaderboard($accountID, $levelID)
+    public function friendsLeaderboard($accountID, $levelID, $periodic)
     {
         $friends = $this->getEntityManager()->getRepository(Friend::class)->friendsFor($accountID);
         $friendIDs = [];
@@ -46,41 +59,43 @@ class LevelScoreRepository extends ServiceEntityRepository
         $friendIDs[] = $accountID; // Include the player himself in the leaderboard
 
         $qb = $this->createQueryBuilder('s');
-
-        return $qb
-            ->join('s.account', 'a')
+		$qb = $qb->join('s.account', 'a')
             ->join('s.level', 'l')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
             ->andWhere($qb->expr()->in('a.id', $friendIDs))
-            ->orderBy('s.percent DESC, s.coins DESC, s.updatedAt')
-            ->getQuery()
+            ->orderBy('s.percent DESC, s.coins DESC, s.updatedAt');
+        $qb = $this->addPeriodicFilter($qb, $periodic);
+        return $qb->getQuery()
             ->getResult();
     }
 
-    public function topLeaderboard($levelID)
+    public function topLeaderboard($levelID, $periodic)
     {
-        return $this->createQueryBuilder('s')
+        $qb = $this->createQueryBuilder('s')
             ->join('s.level', 'l')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
             ->orderBy('s.percent DESC, s.coins DESC, s.updatedAt')
-            ->setMaxResults(200)
-            ->getQuery()
+            ->setMaxResults(200);
+			
+        $qb = $this->addPeriodicFilter($qb, $periodic);
+        return $qb->getQuery()
             ->getResult();
     }
 
-    public function weekLeaderboard($levelID)
+    public function weekLeaderboard($levelID, $periodic)
     {
-        return $this->createQueryBuilder('s')
+        $qb = $this->createQueryBuilder('s')
             ->join('s.level', 'l')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
             ->andWhere('s.updatedAt > :week')
             ->setParameter('week', new \DateTime("1 week ago"))
             ->orderBy('s.percent DESC, s.coins DESC, s.updatedAt')
-            ->setMaxResults(200)
-            ->getQuery()
+            ->setMaxResults(200);
+        $qb = $this->addPeriodicFilter($qb, $periodic);
+        return $qb->getQuery()
             ->getResult();
     }
 }

@@ -43,6 +43,11 @@ class LevelScore
      */
     private $account;
 
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\PeriodicLevel")
+     */
+    private $periodic;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,6 +109,18 @@ class LevelScore
     public function setAccount(?Account $account): self
     {
         $this->account = $account;
+
+        return $this;
+    }
+
+    public function getPeriodic(): ?PeriodicLevel
+    {
+        return $this->periodic;
+    }
+
+    public function setPeriodic(?PeriodicLevel $periodic): self
+    {
+        $this->periodic = $periodic;
 
         return $this;
     }

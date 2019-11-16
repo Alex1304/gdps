@@ -18,6 +18,8 @@ class PeriodicLevelRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('p')
             ->where('p.type = :type')
             ->setParameter('type', $type)
+			->andWhere('p.periodEnd > :now')
+            ->setParameter('now', new \DateTime("now"))
             ->orderBy('p.periodStart', 'DESC')
             ->setMaxResults(1)
             ->getQuery()

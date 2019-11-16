@@ -510,8 +510,9 @@ class LevelsController extends AbstractController
      * @Rest\RequestParam(name="percent")
      * @Rest\RequestParam(name="type")
      * @Rest\RequestParam(name="s9")
+     * @Rest\RequestParam(name="s10")
      */
-    public function getLevelScores(Security $s, TimeFormatter $tf, $levelID, $percent, $type, $s9)
+    public function getLevelScores(Security $s, TimeFormatter $tf, $levelID, $percent, $type, $s9, $s10)
     {
         $em = $this->getDoctrine()->getManager();
         $player = $s->getUser();
@@ -524,8 +525,10 @@ class LevelsController extends AbstractController
         if (!$level)
             return -1;
 
-        $myScore = $em->getRepository(LevelScore::class)->findExistingScore($player->getAccount()->getId(), $level->getId());
+		$periodic = $s10 == '0' ? null : $em->getRepository(PeriodicLevel::class)->find($s10);
+        $myScore = $em->getRepository(LevelScore::class)->findExistingScore($player->getAccount()->getId(), $level->getId(), $periodic);
         $coins = $s9 - 5819;
+		
 
         if (!$myScore && $percent > 0) {
             $myScore = new LevelScore();
@@ -534,6 +537,7 @@ class LevelsController extends AbstractController
             $myScore->setAccount($player->getAccount());
             $myScore->setLevel($level);
             $myScore->setUpdatedAt(new \DateTime());
+			$myScore->setPeriodic($periodic);
             $em->persist($myScore);
         } elseif ($myScore && ($myScore->getPercent() != $percent || $myScore->getCoins() != $coins)) {
             $myScore->setPercent($percent);
@@ -545,13 +549,13 @@ class LevelsController extends AbstractController
 
         switch ($type) {
             case 0:
-                $scores = $em->getRepository(LevelScore::class)->friendsLeaderboard($player->getAccount()->getId(), $level->getId());
+                $scores = $em->getRepository(LevelScore::class)->friendsLeaderboard($player->getAccount()->getId(), $level->getId(), $periodic);
                 break;
             case 1:
-                $scores = $em->getRepository(LevelScore::class)->topLeaderboard($level->getId());
+                $scores = $em->getRepository(LevelScore::class)->topLeaderboard($level->getId(), $periodic);
                 break;
             case 2:
-                $scores = $em->getRepository(LevelScore::class)->weekLeaderboard($level->getId());
+                $scores = $em->getRepository(LevelScore::class)->weekLeaderboard($level->getId(), $periodic);
                 break;
             default:
                 return -1;

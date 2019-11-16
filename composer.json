@@ -9,6 +9,7 @@
         "friendsofsymfony/rest-bundle": "^2.4",
         "jms/serializer-bundle": "^2.4",
         "nelmio/cors-bundle": "^1.5",
+        "psr/simple-cache": "^1.0",
         "sensio/framework-extra-bundle": "^5.1",
         "symfony/apache-pack": "^1.0",
         "symfony/asset": "*",
@@ -21,9 +22,12 @@
         "symfony/orm-pack": "*",
         "symfony/process": "*",
         "symfony/requirements-checker": "^1.1",
+        "symfony/security": "4.3.*",
         "symfony/security-bundle": "*",
         "symfony/serializer-pack": "*",
         "symfony/swiftmailer-bundle": "^3.1",
+        "symfony/templating": "4.3.*",
+        "symfony/translation": "4.3.*",
         "symfony/twig-bundle": "*",
         "symfony/validator": "*",
         "symfony/web-link": "*",
@@ -78,7 +82,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": true,
-            "require": "4.1.*"
+            "require": "4.3.*"
         }
     }
 }
