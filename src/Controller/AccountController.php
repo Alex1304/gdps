@@ -118,6 +118,14 @@ class AccountController extends AbstractController
             elseif ($em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($acc->getId(), $target->getId()))
                 $friendState = 4;
         }
+		
+		$roles = $player->getRoles();
+		$modState = 0;
+		if (in_array('ROLE_ELDERMOD', $roles)) {
+			$modState = 2;
+		} elseif (in_array('ROLE_MOD', $roles)) {
+			$modState = 1;
+		}
 
         return $this->render('account/get_user_info.html.twig', [
             'account' => $target,
@@ -126,6 +134,7 @@ class AccountController extends AbstractController
             'friendState' => $friendState,
             'notifCounters' => $notifCounters,
             'incomingFR' => $incomingFR,
+			'modState' => $modState,
             'timeFormatter' => $tf,
         ]);
     }
@@ -661,4 +670,23 @@ class AccountController extends AbstractController
 
         return 1;
     }
+	
+	/**
+     * @Rest\Post("/requestUserAccess.php", name="request_mod")
+     * 
+     * @IsGranted("ROLE_USER")
+     */
+	public function requestMod(Security $s)
+	{
+		$player = $s->getUser();
+		$roles = $player->getRoles();
+		
+		if (in_array('ROLE_ELDERMOD', $roles)) {
+			return 2;
+		} elseif (in_array('ROLE_MOD', $roles)) {
+			return 1;
+		}
+		
+		return -1;
+	}
 }

@@ -13,6 +13,8 @@ use App\Entity\Account;
 use App\Entity\Authorization;
 use App\Entity\Level;
 use App\Entity\PeriodicLevel;
+use App\Entity\Player;
+use App\Entity\LevelSuggestion;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Services\DifficultyCalculator;
@@ -168,6 +170,87 @@ class RestApiController extends FOSRestController
 
         return null;
     }
+	
+	/**
+     * @Rest\Get("/admin/mod-list", name="api_admin_get_mod_list")
+     * @Rest\View
+     */
+	public function getModList()
+	{
+        $em = $this->getDoctrine()->getManager();
+		
+		$mods = $em->getRepository(Player::class)->findModList();
+		return [
+			'count' => count($mods),
+			'data' => $mods,
+		];
+	}
+	
+	/**
+     * @Rest\Patch("/admin/mod-list", name="api_admin_change_user_roles")
+     * @Rest\View
+	 *
+	 * @Rest\RequestParam(name="player_name")
+	 * @Rest\RequestParam(name="roles_to_add")
+	 * @Rest\RequestParam(name="roles_to_remove")
+     */
+	public function changeUserRoles($player_name, $roles_to_add, $roles_to_remove)
+	{
+		$em = $this->getDoctrine()->getManager();
+		
+		$player = $em->getRepository(Player::class)->findOneByName($player_name);
+		if (!$player) {
+			throw new InvalidParametersException('Unknown player');
+		}
+		$player->removeRoles($roles_to_remove);
+		$player->addRoles($roles_to_add);
+		$em->persist($player);
+		$em->flush();
+		
+		return null;
+	}
+	
+	/**
+     * @Rest\Get("/admin/mod-suggestions", name="api_admin_get_mod_suggestions")
+     * @Rest\View
+	 *
+	 * @Rest\QueryParam(name="min_stars", nullable=true, default=1, requirements={"rule"="[1-9]|10", "error_message"="Invalid min stars"})
+	 * @Rest\QueryParam(name="max_stars", nullable=true, default=10, requirements={"rule"="[1-9]|10", "error_message"="Invalid max stars"})
+	 * @Rest\QueryParam(name="max_song_uses", nullable=true, default=0, requirements={"rule"="[0-9]+", "error_message"="Invalid max song uses"})
+	 * @Rest\QueryParam(name="sort_mode", nullable=true, default=0, requirements={"rule"="-?[0-2]", "error_message"="Invalid sort mode"})
+     */
+	public function getModSuggestions($min_stars, $max_stars, $max_song_uses, $sort_mode)
+	{
+		if ($min_stars > $max_stars) {
+			throw new InvalidParametersException('min_stars cannot be greater than max_stars');
+		}
+		$em = $this->getDoctrine()->getManager();
+		
+		$modSends = $em->getRepository(LevelSuggestion::class)->findSuggestionsByCriteria($min_stars, $max_stars, $max_song_uses, $sort_mode);
+		
+		return [
+			'count' => count($modSends),
+			'data' => $modSends,
+		];
+	}
+	
+	/**
+	 * @Rest\Delete("/admin/mod-suggestions", name="api_admin_remove_mod_suggestion")
+     * @Rest\View
+	 
+     * @Rest\QueryParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
+	 */
+	public function removeModSuggestion($level_id)
+	{
+		$em = $this->getDoctrine()->getManager();
+		$suggestions = $em->getRepository(LevelSuggestion::class)->findSuggestionsForLevel($level_id);
+		foreach ($suggestions as $s) {
+			$em->remove($s);
+		}
+		$em->flush();
+		
+		return null;
+	}
 
     /**
      * @Rest\Put("/me/credentials", name="api_update_credentials")

@@ -6,11 +6,15 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+use JMS\Serializer\Annotation as Serializer;
+
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\PlayerRepository")
  * @ORM\Table(name="player", indexes={@ORM\Index(name="leaderboards_idx", columns={"stars"}), @ORM\Index(name="usersearch_idx", columns={"name"}), @ORM\Index(name="cp_leaderboard_idx", columns={"creator_points"})})
+ *
+ * @Serializer\ExclusionPolicy("ALL")
  */
 class Player implements UserInterface
 {
@@ -18,6 +22,8 @@ class Player implements UserInterface
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     *
+     * @Serializer\Expose
      */
     private $id;
 
@@ -28,6 +34,8 @@ class Player implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Serializer\Expose
      */
     private $name;
 
@@ -205,6 +213,16 @@ class Player implements UserInterface
      * @ORM\Column(type="datetime")
      */
     private $nextQuestsAt;
+	
+    /**
+     * @ORM\Column(type="array")
+     */
+    private $roles;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelSuggestion", mappedBy="moderator", orphanRemoval=true)
+     */
+    private $levelSuggestions;
 
     public function __construct()
     {
@@ -219,6 +237,7 @@ class Player implements UserInterface
         $this->levelDemonVotes = new ArrayCollection();
         $this->likedAccountComments = new ArrayCollection();
         $this->dislikedAccountComments = new ArrayCollection();
+        $this->levelSuggestions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -860,17 +879,36 @@ class Player implements UserInterface
     {
         return;
     }
-
+	
+    /**
+     * @Serializer\VirtualProperty()
+     * @Serializer\SerializedName("roles")
+     */
     public function getRoles(): array
     {
         if (!$this->getAccount())
             return [ 'ROLE_UNREGISTERED_USER' ];
 
-        if ($this->getAccount()->getId() === 71)
-            return [ 'ROLE_ADMIN' ];
+        $roles = $this->roles ?? [];
+		$roles[] = 'ROLE_USER';
 
-        return [ 'ROLE_USER' ];
+		return array_unique($roles);
     }
+	
+	public function addRoles($rolesToAdd)
+    {
+		$roles = array_merge($this->roles ?? [], $rolesToAdd);
+		$this->roles = array_unique($roles);
+		
+		return $this;
+	}
+
+	public function removeRoles($rolesToRemove)
+	{
+		$this->roles = array_diff($this->roles ?? [], $rolesToRemove);
+		
+		return $this;
+	}
 
     public function getLastQuestId(): ?int
     {
@@ -892,6 +930,37 @@ class Player implements UserInterface
     public function setNextQuestsAt(\DateTimeInterface $nextQuestsAt): self
     {
         $this->nextQuestsAt = $nextQuestsAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelSuggestion[]
+     */
+    public function getLevelSuggestions(): Collection
+    {
+        return $this->levelSuggestions;
+    }
+
+    public function addLevelSuggestion(LevelSuggestion $levelSuggestion): self
+    {
+        if (!$this->levelSuggestions->contains($levelSuggestion)) {
+            $this->levelSuggestions[] = $levelSuggestion;
+            $levelSuggestion->setModerator($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelSuggestion(LevelSuggestion $levelSuggestion): self
+    {
+        if ($this->levelSuggestions->contains($levelSuggestion)) {
+            $this->levelSuggestions->removeElement($levelSuggestion);
+            // set the owning side to null (unless already changed)
+            if ($levelSuggestion->getModerator() === $this) {
+                $levelSuggestion->setModerator(null);
+            }
+        }
 
         return $this;
     }

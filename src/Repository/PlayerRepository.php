@@ -154,4 +154,16 @@ class PlayerRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+	
+	public function findModList()
+	{
+		return $this->createQueryBuilder('p')
+			->where('p.roles LIKE :role1')
+			->setParameter('role1', '%"ROLE_MOD"%')
+			->orWhere('p.roles LIKE :role2')
+			->setParameter('role2', '%"ROLE_ELDERMOD"%')
+			->orderBy('p.name')
+			->getQuery()
+			->getResult();
+	}
 }

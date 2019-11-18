@@ -22,7 +22,7 @@ class LevelData
     private $data;
 
     /**
-     * @ORM\OneToOne(targetEntity="App\Entity\Level", cascade={"persist", "remove"})
+     * @ORM\OneToOne(targetEntity="App\Entity\Level", cascade={"persist", "remove"}, inversedBy="levelData")
      * @ORM\JoinColumn(nullable=false)
      */
     private $level;
@@ -52,7 +52,11 @@ class LevelData
     public function setLevel(Level $level): self
     {
         $this->level = $level;
-
+		
+		if ($level->getLevelData() === null) {
+			$level->setLevelData($this);
+		}
+		
         return $this;
     }
 }

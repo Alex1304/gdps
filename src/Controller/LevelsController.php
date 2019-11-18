@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Security\Core\Security;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use FOS\RestBundle\Controller\Annotations as Rest;
 
 use App\Services\SongProvider;
@@ -18,6 +19,7 @@ use App\Entity\LevelComment;
 use App\Entity\AccountComment;
 use App\Entity\LevelStarVote;
 use App\Entity\LevelDemonVote;
+use App\Entity\LevelSuggestion;
 use App\Entity\Friend;
 use App\Entity\LevelScore;
 use App\Entity\PeriodicLevel;
@@ -78,6 +80,8 @@ class LevelsController extends AbstractController
                 $level->setRewardsGivenAt(null);
 				$level->setDownloads(0);
 				$level->setLikes(0);
+				$levelData = new LevelData();
+				$levelData->setLevel($level);
             } else {
                 $level = $levelWithSameName;
             }
@@ -89,9 +93,7 @@ class LevelsController extends AbstractController
             return -1;
 
         $level->setDescription($levelDesc ?? '');
-		$levelData = new LevelData();
-        $levelData->setData($levelString);
-		$levelData->setLevel($level);
+        $level->getLevelData()->setData($levelString);
         $level->setAudioTrack($audioTrack);
         $level->setCustomSongID($songID);
         $level->setGameVersion($gameVersion);
@@ -108,7 +110,7 @@ class LevelsController extends AbstractController
 
         $em->persist($s->getUser());
         $em->persist($level);
-        $em->persist($levelData);
+        $em->persist($level->getLevelData());
         $em->flush();
 
         return $level->getId();
@@ -571,8 +573,8 @@ class LevelsController extends AbstractController
     }
 
     /**
-     * @Rest\Post("getGJDailyLevel.php", name="get_daily_level")
-
+     * @Rest\Post("/getGJDailyLevel.php", name="get_daily_level")
+	 *
      * @Rest\RequestParam(name="weekly", requirements="0|1")
      */
     public function getDailyInfo($weekly)
@@ -588,4 +590,35 @@ class LevelsController extends AbstractController
 
         return $periodic->getId() . '|' . $secondsLeft;
     }
+	
+    /**
+     * @Rest\Post("/suggestGJStars20.php", name="get_daily_level")
+	 *
+     * @Rest\RequestParam(name="levelID", requirements="[0-9]+")
+     * @Rest\RequestParam(name="stars", requirements="[1-9]|10")
+     * @Rest\RequestParam(name="feature", requirements="0|1")
+	 *
+	 * @IsGranted("ROLE_MOD")
+     */
+	public function suggestStars(Security $s, $levelID, $stars, $feature)
+	{
+		$em = $this->getDoctrine()->getManager();
+		$player = $s->getUser();
+		
+		$level = $em->getRepository(Level::class)->find($levelID);
+		if (!$level || $level->getStars() > 0) {
+			return -1;
+		}
+		
+		$suggestion = $em->getRepository(LevelSuggestion::class)->findExisting($player->getId(), $levelID) ?? new LevelSuggestion();
+		$suggestion->setModerator($player);
+		$suggestion->setLevel($level);
+		$suggestion->setStars($stars);
+		$suggestion->setIsFeatured(!!$feature);
+		$suggestion->setSentAt(new \Datetime());
+		$em->persist($suggestion);
+		$em->flush();
+		
+		return 1;
+	}
 }

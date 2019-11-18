@@ -1,4 +1,7 @@
 {
+    "beberlei/doctrineextensions": {
+        "version": "v1.2.3"
+    },
     "csa/guzzle-bundle": {
         "version": "3.0",
         "recipe": {

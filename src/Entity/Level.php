@@ -265,6 +265,11 @@ class Level
      * @ORM\Column(type="bigint")
      */
     private $likes;
+	
+	/**
+	 * @ORM\OneToOne(targetEntity="App\Entity\LevelData", mappedBy="level")
+	 */
+	private $levelData;
 
     public function __construct()
     {
@@ -275,6 +280,7 @@ class Level
         $this->levelStarVotes = new ArrayCollection();
         $this->levelDemonVotes = new ArrayCollection();
         $this->levelScores = new ArrayCollection();
+        $this->modSends = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -863,6 +869,22 @@ class Level
     {
         $this->likes = $likes;
 
+        return $this;
+    }
+	
+    public function getLevelData(): ?LevelData
+    {
+        return $this->levelData;
+    }
+
+    public function setLevelData(LevelData $levelData): self
+    {
+        $this->levelData = $levelData;
+	
+		if ($levelData->getLevel() === null) {
+			$levelData->setLevel($this);
+		}
+		
         return $this;
     }
 }
