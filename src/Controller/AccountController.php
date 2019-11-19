@@ -119,7 +119,7 @@ class AccountController extends AbstractController
                 $friendState = 4;
         }
 		
-		$roles = $player->getRoles();
+		$roles = $target->getPlayer()->getRoles();
 		$modState = 0;
 		if (in_array('ROLE_ELDERMOD', $roles)) {
 			$modState = 2;
