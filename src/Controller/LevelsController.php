@@ -592,7 +592,7 @@ class LevelsController extends AbstractController
     }
 	
     /**
-     * @Rest\Post("/suggestGJStars20.php", name="get_daily_level")
+     * @Rest\Post("/suggestGJStars20.php", name="suggest_stars")
 	 *
      * @Rest\RequestParam(name="levelID", requirements="[0-9]+")
      * @Rest\RequestParam(name="stars", requirements="[1-9]|10")
