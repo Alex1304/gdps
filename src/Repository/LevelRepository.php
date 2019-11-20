@@ -93,13 +93,13 @@ class LevelRepository extends ServiceEntityRepository
             $qb->andWhere('l.original IS NULL');
 
         if ($twoPlayer)
-            $qb->andWhere('l.twoPlayer = 1');
+            $qb->andWhere('l.isTwoPlayer = 1');
 
         if ($coins)
             $qb->andWhere('l.coins > 0');
 
         if ($epic)
-            $qb->andWhere('l.epic = 1');
+            $qb->andWhere('l.isEpic = 1');
 
         if (!empty($demonFilter))
             $qb->andWhere('l.demonDifficulty = :demondiff')
@@ -115,7 +115,7 @@ class LevelRepository extends ServiceEntityRepository
             $qb->andWhere('l.customSongID = :song')->setParameter('song', $song);
 
         if ($song && !$customSong)
-            $qb->andWhere('l.audioTrack = :audio AND l.customSongID = 0')->setParameter('audio', $song);
+            $qb->andWhere('l.audioTrack = :audio AND l.customSongID = 0')->setParameter('audio', $song - 1);
 
         if (!$song && $customSong)
             $qb->andWhere('l.customSongID > 0');
