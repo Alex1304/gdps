@@ -18,6 +18,7 @@ use App\Entity\LevelSuggestion;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Services\DifficultyCalculator;
+use App\Services\PlayerManager;
 use App\Services\XORCipher;
 use App\Services\StrictValidator;
 use App\Services\TokenGenerator;
@@ -120,7 +121,7 @@ class RestApiController extends FOSRestController
 
         $periodicsToShift = $em->getRepository(PeriodicLevel::class)->findFromDateOfType($type, $periodic->getPeriodEnd());
         if (!count($periodicsToShift))
-            throw new InvalidParametersException(sprintf("Cannot skip current level: no other level is queued", $index));
+            throw new InvalidParametersException("Cannot skip current level: no other level is queued");
         
         $em->remove($periodic);
 
@@ -146,7 +147,7 @@ class RestApiController extends FOSRestController
 	 * @Rest\RequestParam(name="is_epic", nullable=true, default=null)
 	 * @Rest\RequestParam(name="featured_score", nullable=true, default=null, requirements={"rule"="[0-9]+", "error_message"="Invalid featured score"})
      */
-    public function applyRating(DifficultyCalculator $dc, $level_id, $stars, $verify_coins, $is_epic, $featured_score)
+    public function applyRating(DifficultyCalculator $dc, PlayerManager $pm, $level_id, $stars, $verify_coins, $is_epic, $featured_score)
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -154,18 +155,26 @@ class RestApiController extends FOSRestController
         if (!$level) {
             throw new InvalidParametersException("Unknown level");
 		}
-		if ($stars || $verify_coins){
-			$level->setRewardsGivenAt(new \DateTime());
-		}
-		if ($stars) {
+		
+		if ($stars !== null) {
 			$level->setStars($stars);
-			$level->setDifficulty($dc->getDifficultyForStars($stars));
+			$level->setDifficulty($stars ? $dc->getDifficultyForStars($stars) : $dc->getDifficultyForVotes($level));
+			$level->setIsAuto($stars == 1);
+			$level->setIsDemon($stars == 10);
+		}
+		if (($stars !== null && $stars != $level->getStars()) || ($verify_coins !== null && !$verify_coins == $level->getHasCoinsVerified())) {
+			$level->setRewardsGivenAt($stars > 0 || $verify_coins ? new \DateTime() : null);
 		}
         $level->setHasCoinsVerified(!!($verify_coins ?? $level->getHasCoinsVerified()));
 		$level->setIsEpic(!!($is_epic ?? $level->getIsEpic()));
 		$level->setFeatureScore($featured_score ?? $level->getFeatureScore());
 		
-        $em->persist($level);
+		// Delete all associated mod sends and auto update cp of creator
+		foreach ($em->getRepository(LevelSuggestion::class)->findSuggestionsForLevel($level) as $s) {
+			$em->remove($s);
+		}
+		$pm->updateCreatorPoints($level->getCreator());
+		
         $em->flush();
 
         return null;

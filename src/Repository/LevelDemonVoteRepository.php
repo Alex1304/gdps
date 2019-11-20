@@ -14,8 +14,6 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
  */
 class LevelDemonVoteRepository extends ServiceEntityRepository
 {
-    const MIN_VOTES_REQUIRED = 50;
-
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, LevelDemonVote::class);
@@ -23,28 +21,43 @@ class LevelDemonVoteRepository extends ServiceEntityRepository
 
     public function findPlayerVoteForLevel($playerID, $levelID): ?LevelDemonVote
     {
-        $results = $this->createQueryBuilder('lsv')
+        return $this->createQueryBuilder('lsv')
             ->join('lsv.player', 'p')
             ->join('lsv.level', 'l')
             ->where('p.id = :pid AND l.id = :lid')
             ->setParameter('pid', $playerID)
             ->setParameter('lid', $levelID)
             ->getQuery()
-            ->getResult();
-
-        return !count($results) ? null : $results[0];
+            ->getOneOrNullResult();
     }
-
-    public function averageVotesForLevel($levelID)
-    {
-        return $this->createQueryBuilder('ldv')
-            ->select('AVG(ldv.demonValue) AS avgVotes, COUNT(ldv.id) AS HIDDEN totalVotes')
+	
+	private function averageVotesForLevel0($levelID, $isModVote)
+	{
+		$result = $this->createQueryBuilder('ldv')
+            ->select('AVG(ldv.demonValue) AS avgVotes')
             ->join('ldv.level', 'l')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
+			->andWhere('ldv.isModVote = ' . $isModVote)
             ->groupBy('l.id')
-            ->having('totalVotes >= ' . self::MIN_VOTES_REQUIRED) // No need to use query parameters because it isn't user input
             ->getQuery()
             ->getScalarResult();
+			
+		return !count($result) ? null : $result[0]['avgVotes'];
+	}
+
+    public function averageVotesForLevel($levelID)
+    {
+        $playerAvg = $this->averageVotesForLevel0($levelID, 0);
+		$modAvg = $this->averageVotesForLevel0($levelID, 1);
+		
+		if ($playerAvg === null) {
+			return $modAvg;
+		} elseif ($modAvg === null) {
+			return $playerAvg;
+		} elseif ($playerAvg === null && $modAvg === null) {
+			return 0;
+		}
+		return (2 * $playerAvg + $modAvg) / 3;
     }
 }

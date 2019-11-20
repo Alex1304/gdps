@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20191118131704 extends AbstractMigration
+final class Version20191120174724 extends AbstractMigration
 {
     public function getDescription() : string
     {
@@ -22,8 +22,7 @@ final class Version20191118131704 extends AbstractMigration
         // this up() migration is auto-generated, please modify it to your needs
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
-        $this->addSql('ALTER TABLE player ADD roles LONGTEXT NOT NULL COMMENT \'(DC2Type:array)\'');
-		$this->addSql("UPDATE player p, account a SET p.roles = 'a:1:{i:0;s:10:\"ROLE_ADMIN\";}' WHERE p.id = a.player_id AND a.id = 71");
+        $this->addSql('ALTER TABLE level_demon_vote ADD is_mod_vote TINYINT(1) NOT NULL');
     }
 
     public function down(Schema $schema) : void
@@ -31,6 +30,6 @@ final class Version20191118131704 extends AbstractMigration
         // this down() migration is auto-generated, please modify it to your needs
         $this->abortIf($this->connection->getDatabasePlatform()->getName() !== 'mysql', 'Migration can only be executed safely on \'mysql\'.');
 
-        $this->addSql('ALTER TABLE player DROP roles');
+        $this->addSql('ALTER TABLE level_demon_vote DROP is_mod_vote');
     }
 }

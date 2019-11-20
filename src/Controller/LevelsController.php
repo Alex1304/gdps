@@ -452,8 +452,9 @@ class LevelsController extends AbstractController
      *
      * @Rest\RequestParam(name="levelID")
      * @Rest\RequestParam(name="rating")
+     * @Rest\RequestParam(name="mode", nullable=true, default=null)
      */
-    public function voteLevelDemon(Security $s, DifficultyCalculator $dc, $levelID, $rating)
+    public function voteLevelDemon(Security $s, DifficultyCalculator $dc, $levelID, $rating, $mode)
     {
         $em = $this->getDoctrine()->getManager();
         $player = $s->getUser();
@@ -470,6 +471,7 @@ class LevelsController extends AbstractController
         $vote->setPlayer($player);
         $vote->setLevel($level);
         $vote->setDemonValue($rating);
+		$vote->setIsModVote($mode ?? false);
 
         $em->persist($vote);
         $em->persist($player);

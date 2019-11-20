@@ -33,6 +33,11 @@ class LevelDemonVote
      */
     private $demonValue;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isModVote;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -70,6 +75,18 @@ class LevelDemonVote
     public function setDemonValue(int $demonValue): self
     {
         $this->demonValue = $demonValue;
+
+        return $this;
+    }
+
+    public function getIsModVote(): ?bool
+    {
+        return $this->isModVote;
+    }
+
+    public function setIsModVote(bool $isModVote): self
+    {
+        $this->isModVote = $isModVote;
 
         return $this;
     }

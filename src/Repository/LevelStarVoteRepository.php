@@ -23,16 +23,14 @@ class LevelStarVoteRepository extends ServiceEntityRepository
 
     public function findPlayerVoteForLevel($playerID, $levelID): ?LevelStarVote
     {
-        $results = $this->createQueryBuilder('lsv')
+        return $this->createQueryBuilder('lsv')
             ->join('lsv.player', 'p')
             ->join('lsv.level', 'l')
             ->where('p.id = :pid AND l.id = :lid')
             ->setParameter('pid', $playerID)
             ->setParameter('lid', $levelID)
             ->getQuery()
-            ->getResult();
-
-        return !count($results) ? null : $results[0];
+            ->getOneOrNullResult();
     }
 
     public function averageVotesForLevel($levelID)
@@ -43,7 +41,7 @@ class LevelStarVoteRepository extends ServiceEntityRepository
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
             ->groupBy('l.id')
-            ->having('totalVotes >= ' . self::MIN_VOTES_REQUIRED) // No need to use query parameters because it isn't user input
+            ->having('totalVotes >= ' . self::MIN_VOTES_REQUIRED)
             ->getQuery()
             ->getScalarResult();
     }
