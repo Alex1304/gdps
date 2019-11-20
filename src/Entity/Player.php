@@ -224,6 +224,11 @@ class Player implements UserInterface
      */
     private $levelSuggestions;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\CommentBan", mappedBy="moderator", orphanRemoval=true)
+     */
+    private $commentBans;
+
     public function __construct()
     {
         $this->levels = new ArrayCollection();
@@ -238,6 +243,7 @@ class Player implements UserInterface
         $this->likedAccountComments = new ArrayCollection();
         $this->dislikedAccountComments = new ArrayCollection();
         $this->levelSuggestions = new ArrayCollection();
+        $this->commentBans = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -896,17 +902,17 @@ class Player implements UserInterface
     }
 	
 	public function addRoles($rolesToAdd)
-    {
+	{
 		$roles = array_merge($this->roles ?? [], $rolesToAdd);
 		$this->roles = array_unique($roles);
-		
+               		
 		return $this;
 	}
 
 	public function removeRoles($rolesToRemove)
 	{
 		$this->roles = array_diff($this->roles ?? [], $rolesToRemove);
-		
+               		
 		return $this;
 	}
 
@@ -959,6 +965,37 @@ class Player implements UserInterface
             // set the owning side to null (unless already changed)
             if ($levelSuggestion->getModerator() === $this) {
                 $levelSuggestion->setModerator(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|CommentBan[]
+     */
+    public function getCommentBans(): Collection
+    {
+        return $this->commentBans;
+    }
+
+    public function addCommentBan(CommentBan $commentBan): self
+    {
+        if (!$this->commentBans->contains($commentBan)) {
+            $this->commentBans[] = $commentBan;
+            $commentBan->setModerator($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCommentBan(CommentBan $commentBan): self
+    {
+        if ($this->commentBans->contains($commentBan)) {
+            $this->commentBans->removeElement($commentBan);
+            // set the owning side to null (unless already changed)
+            if ($commentBan->getModerator() === $this) {
+                $commentBan->setModerator(null);
             }
         }
 

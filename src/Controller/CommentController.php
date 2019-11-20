@@ -7,10 +7,13 @@ use Symfony\Component\Security\Core\Security;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use FOS\RestBundle\Controller\Annotations as Rest;
 
+use App\Services\ElderCommandHandler;
 use App\Services\TimeFormatter;
-use App\Entity\LevelComment;
+use App\Entity\Account;
 use App\Entity\AccountComment;
+use App\Entity\CommentBan;
 use App\Entity\Level;
+use App\Entity\LevelComment;
 
 class CommentController extends AbstractController
 {
@@ -23,15 +26,28 @@ class CommentController extends AbstractController
      *
      * @IsGranted("ROLE_USER")
      */
-    public function uploadLevelComment(Security $s, $levelID, $comment, $percent)
+    public function uploadLevelComment(Security $s, ElderCommandHandler $ech, $levelID, $comment, $percent)
     {
     	$em = $this->getDoctrine()->getManager();
     	$player = $s->getUser();
-
+		
+		// Handling elder mod ban command
+		$commandResult = $ech->handle($comment, $player);
+		if ($commandResult !== false) {
+			return $commandResult;
+		}
+		
     	$level = $em->getRepository(Level::class)->find($levelID);
 
     	if (!$level)
     		return -1;
+		
+		// Check if comment banned (exit if so)
+		$ban = $em->getRepository(CommentBan::class)->findCurrentBan($player->getId());
+		if ($ban) {
+			$timeLeft = $ban->getExpiresAt()->getTimestamp() - time();
+			return 'temp_' . $timeLeft . ($ban->getReason() ? '_' . $ban->getReason() : '');
+		}
 
     	$lvlcomment = new LevelComment();
     	$lvlcomment->setPostedAt(new \DateTime());

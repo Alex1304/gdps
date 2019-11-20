@@ -207,10 +207,11 @@ class RestApiController extends FOSRestController
 	{
 		$em = $this->getDoctrine()->getManager();
 		
-		$player = $em->getRepository(Player::class)->findOneByName($player_name);
-		if (!$player) {
+		$account = $em->getRepository(Account::class)->findOneByUsername($player_name);
+		if (!$account) {
 			throw new InvalidParametersException('Unknown player');
 		}
+		$player = $account->getPlayer();
 		$player->removeRoles($roles_to_remove);
 		$player->addRoles($roles_to_add);
 		$em->persist($player);

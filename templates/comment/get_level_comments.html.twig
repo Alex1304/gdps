@@ -13,9 +13,8 @@
 		7~{% if likes < -3 %}1{% else %}0{% endif %}~
 		9~{{ timeFormatter.format(comment.postedAt) }}~
 		6~{{ comment.id }}~
-		10~{{ comment.percent }}~
-		11~0~
-		12~000,000,000
+		10~{{ comment.percent }}
+		{% if 'ROLE_ELDERMOD' in comment.author.roles %}~11~2~12~75,255,75{% endif %}
 		:
 		1~{{ comment.author.name }}~
 		7~1~
