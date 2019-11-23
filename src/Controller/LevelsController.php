@@ -21,12 +21,14 @@ use App\Entity\LevelStarVote;
 use App\Entity\LevelDemonVote;
 use App\Entity\LevelSuggestion;
 use App\Entity\Friend;
+use App\Entity\LevelReport;
 use App\Entity\LevelScore;
 use App\Entity\PeriodicLevel;
 
 class LevelsController extends AbstractController
 {
     const LEVELS_PER_PAGE = 10;
+	const MAX_REPORTS_IN_10MINS_PER_LEVEL = 3;
 
     /**
      * @Rest\Post("/uploadGJLevel21.php", name="upload_level")
@@ -592,6 +594,37 @@ class LevelsController extends AbstractController
 
         return $periodic->getId() . '|' . $secondsLeft;
     }
+	
+	/**
+	 * @Rest\Post("/reportGJLevel.php", name="report_level")
+	 *
+	 * @Rest\RequestParam(name="levelID", requirements="[0-9]+")
+	 */
+	public function reportLevel(Security $s, $levelID)
+	{
+		$em = $this->getDoctrine()->getManager();
+		
+		$level = $em->getRepository(Level::class)->find($levelID);
+		
+		if (!$level) {
+			return -1;
+		}
+		
+		$reportsLast10Mins = $em->getRepository(LevelReport::class)->numberOfReportsForLevelLast10Mins($levelID);
+		
+		if ($reportsLast10Mins >= self::MAX_REPORTS_IN_10MINS_PER_LEVEL) {
+			return -1;
+		}
+		
+		$report = new LevelReport();
+		$report->setLevel($level);
+		$report->setReporterIp($_SERVER['REMOTE_ADDR']);
+		$report->setReportedAt(new \DateTime());
+		$em->persist($report);
+		$em->flush();
+		
+		return 1;
+	}
 	
     /**
      * @Rest\Post("/suggestGJStars20.php", name="suggest_stars")

@@ -12,6 +12,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 use App\Entity\Account;
 use App\Entity\Authorization;
 use App\Entity\Level;
+use App\Entity\LevelReport;
 use App\Entity\PeriodicLevel;
 use App\Entity\Player;
 use App\Entity\LevelSuggestion;
@@ -247,7 +248,7 @@ class RestApiController extends FOSRestController
 	/**
 	 * @Rest\Delete("/admin/mod-suggestions", name="api_admin_remove_mod_suggestion")
      * @Rest\View
-	 
+	 *
      * @Rest\QueryParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
 	 */
 	public function removeModSuggestion($level_id)
@@ -258,6 +259,64 @@ class RestApiController extends FOSRestController
 			$em->remove($s);
 		}
 		$em->flush();
+		
+		return null;
+	}
+	
+	/**
+     * @Rest\Get("/admin/level-reports", name="api_admin_level_reports")
+     * @Rest\View
+	 *
+	 * @Rest\QueryParam(name="sort_mode", nullable=true, default=0, requirements={"rule"="-?[0-2]", "error_message"="Invalid sort mode"})
+     */
+	public function getLevelReports($sort_mode)
+	{
+		$em = $this->getDoctrine()->getManager();
+		
+		$reports = $em->getRepository(LevelReport::class)->findReportsGroupedByLevel($sort_mode);
+		
+		return [
+			'count' => count($reports),
+			'data' => $reports,
+		];
+	}
+	
+	/**
+	 * @Rest\Delete("/admin/level-reports", name="api_admin_remove_level_report")
+     * @Rest\View
+	 *
+     * @Rest\QueryParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
+	 */
+	public function removeLevelReport($level_id)
+	{
+		$em = $this->getDoctrine()->getManager();
+		$reports = $em->getRepository(LevelReport::class)->findReportsForLevel($level_id);
+		foreach ($reports as $r) {
+			$em->remove($r);
+		}
+		$em->flush();
+		
+		return null;
+	}
+	
+	/**
+	 * @Rest\Delete("/admin/levels", name="api_admin_delete_level")
+     * @Rest\View
+	 *
+     * @Rest\QueryParam(name="level_id", requirements={"rule"="[0-9]+", "error_message"="Invalid level ID"})
+	 */
+	public function deleteLevel(PlayerManager $pm, $level_id)
+	{
+		$em = $this->getDoctrine()->getManager();
+		$level = $em->getRepository(Level::class)->find($level_id);
+		if (!$level) {
+			throw new InvalidParametersException('Unknown level');
+		}
+		$creator = $level->getCreator();
+		$em->remove($level);
+		$em->flush();
+		
+		$pm->updateCreatorPoints($creator);
 		
 		return null;
 	}

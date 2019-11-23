@@ -267,9 +267,24 @@ class Level
     private $likes;
 	
 	/**
-	 * @ORM\OneToOne(targetEntity="App\Entity\LevelData", mappedBy="level")
+	 * @ORM\OneToOne(targetEntity="App\Entity\LevelData", mappedBy="level", cascade={"persist", "remove"})
 	 */
 	private $levelData;
+	
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\PeriodicLevel", mappedBy="level", orphanRemoval=true)
+     */
+    private $periodics;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelSuggestion", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelSuggestions;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\LevelReport", mappedBy="level", orphanRemoval=true)
+     */
+    private $levelReports;
 
     public function __construct()
     {
@@ -281,6 +296,9 @@ class Level
         $this->levelDemonVotes = new ArrayCollection();
         $this->levelScores = new ArrayCollection();
         $this->modSends = new ArrayCollection();
+        $this->periodics = new ArrayCollection();
+        $this->levelSuggestions = new ArrayCollection();
+        $this->levelReports = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -885,6 +903,99 @@ class Level
 			$levelData->setLevel($this);
 		}
 		
+        return $this;
+    }
+
+    /**
+     * @return Collection|PeriodicLevel[]
+     */
+    public function getPeriodics(): Collection
+    {
+        return $this->periodics;
+    }
+
+    public function addPeriodic(PeriodicLevel $periodic): self
+    {
+        if (!$this->periodics->contains($periodic)) {
+            $this->periodics[] = $periodic;
+            $periodic->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removePeriodic(PeriodicLevel $periodic): self
+    {
+        if ($this->periodics->contains($periodic)) {
+            $this->periodics->removeElement($periodic);
+            // set the owning side to null (unless already changed)
+            if ($periodic->getLevel() === $this) {
+                $periodic->setLevel(null);
+            }
+        }
+
+        return $this;
+    }
+	
+	/**
+     * @return Collection|LevelSuggestion[]
+     */
+    public function getLevelSuggestions(): Collection
+    {
+        return $this->levelSuggestions;
+    }
+
+    public function addLevelSuggestion(LevelSuggestion $levelSuggestion): self
+    {
+        if (!$this->levelSuggestions->contains($levelSuggestion)) {
+            $this->levelSuggestions[] = $levelSuggestion;
+            $levelSuggestion->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelSuggestion(LevelSuggestion $levelSuggestion): self
+    {
+        if ($this->levelSuggestions->contains($levelSuggestion)) {
+            $this->levelSuggestions->removeElement($levelSuggestion);
+            // set the owning side to null (unless already changed)
+            if ($levelSuggestion->getLevel() === $this) {
+                $levelSuggestion->setLevel(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|LevelReport[]
+     */
+    public function getLevelReports(): Collection
+    {
+        return $this->levelReports;
+    }
+
+    public function addLevelReport(LevelReport $levelReport): self
+    {
+        if (!$this->levelReports->contains($levelReport)) {
+            $this->levelReports[] = $levelReport;
+            $levelReport->setLevel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLevelReport(LevelReport $levelReport): self
+    {
+        if ($this->levelReports->contains($levelReport)) {
+            $this->levelReports->removeElement($levelReport);
+            // set the owning side to null (unless already changed)
+            if ($levelReport->getLevel() === $this) {
+                $levelReport->setLevel(null);
+            }
+        }
+
         return $this;
     }
 }
