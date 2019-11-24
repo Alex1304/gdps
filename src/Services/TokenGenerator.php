@@ -15,7 +15,7 @@ class TokenGenerator
 		$this->b64 = $b64;
 	}
 
-	public function generate(UserInterface $user)
+	public function generate($user)
 	{
 		$length = 32;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

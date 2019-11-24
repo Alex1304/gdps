@@ -99,7 +99,7 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
             return new Response($account->getId() . ',' . $player->getId());
         }
 
-        $auth = $this->em->getRepository(Authorization::class)->forUser($account->getId());
+        $auth = $this->em->getRepository(Authorization::class)->forUser($account->getId(), Authorization::SCOPE_LOGIN);
         $status = Response::HTTP_OK;
 
         if (!$auth) {
@@ -107,6 +107,7 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
             $auth = new Authorization();
             $auth->setUser($account);
             $auth->setToken($this->tokenGen->generate($player, $this->b64));
+			$auth->setScope(Authorization::SCOPE_LOGIN);
 
             $em->persist($auth);
             $em->flush();
@@ -119,12 +120,14 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception)
     {
-    	if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded')
-    		return new Response('-1');
+		$message = strtr($exception->getMessageKey(), $exception->getMessageData());
+    	if ($request->headers->get('Content-Type') === 'application/x-www-form-urlencoded') {
+    		return new Response($message == "This account has been terminated." ? '-12' : $message);
+		}
 
         $data = array(
         	'code' => Response::HTTP_FORBIDDEN,
-            'message' => strtr($exception->getMessageKey(), $exception->getMessageData())
+            'message' => $message
         );
 
         return new JsonResponse($data, Response::HTTP_FORBIDDEN);

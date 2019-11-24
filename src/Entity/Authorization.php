@@ -19,6 +19,10 @@ use JMS\Serializer\Annotation as Serializer;
  */
 class Authorization
 {
+	const SCOPE_LOGIN = 0;
+	const SCOPE_ACCOUNT_VERIFY = 1;
+	const SCOPE_PASSWORD_RESET = 2;
+	
     /**
      * @ORM\Id()
      * @ORM\GeneratedValue()
@@ -40,6 +44,11 @@ class Authorization
      * @Serializer\Expose
      */
     private $token;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $scope;
 
     public function getId(): ?int
     {
@@ -66,6 +75,18 @@ class Authorization
     public function setToken(string $token): self
     {
         $this->token = $token;
+
+        return $this;
+    }
+
+    public function getScope(): ?int
+    {
+        return $this->scope;
+    }
+
+    public function setScope(int $scope): self
+    {
+        $this->scope = $scope;
 
         return $this;
     }

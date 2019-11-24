@@ -19,12 +19,14 @@ class AuthorizationRepository extends ServiceEntityRepository
         parent::__construct($registry, Authorization::class);
     }
 
-    public function forUser($userID)
+    public function forUser($userID, $scope)
     {
         return $this->createQueryBuilder('a')
             ->join('a.user', 'u')
             ->where('u.id = :id')
             ->setParameter('id', $userID)
+			->andWhere('a.scope = :scope')
+			->setParameter('scope', $scope)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

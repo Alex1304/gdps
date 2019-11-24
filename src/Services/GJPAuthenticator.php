@@ -61,7 +61,7 @@ class GJPAuthenticator extends AbstractGuardAuthenticator
 
         $user = $this->em->getRepository(Player::class)->findPlayerWithAccountID($accountID);
 
-        if (!$user)
+        if (!$user || !$user->getAccount()->getIsVerified() || $user->getAccount()->getIsLocked())
         	return;
 
         return $user;

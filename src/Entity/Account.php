@@ -158,6 +158,16 @@ class Account
      */
     private $incomingFriendRequests;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isVerified;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $isLocked;
+
     public function __construct()
     {
         $this->blockedBy = new ArrayCollection();
@@ -520,6 +530,30 @@ class Account
                 $incomingFriendRequest->setRecipient(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getIsVerified(): ?bool
+    {
+        return $this->isVerified;
+    }
+
+    public function setIsVerified(bool $isVerified): self
+    {
+        $this->isVerified = $isVerified;
+
+        return $this;
+    }
+
+    public function getIsLocked(): ?bool
+    {
+        return $this->isLocked;
+    }
+
+    public function setIsLocked(bool $isLocked): self
+    {
+        $this->isLocked = $isLocked;
 
         return $this;
     }

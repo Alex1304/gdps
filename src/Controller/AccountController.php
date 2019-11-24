@@ -7,9 +7,12 @@ use Symfony\Component\Security\Core\Security;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use FOS\RestBundle\Controller\Annotations as Rest;
 
+use App\Services\EmailNotifier;
 use App\Services\GDAuthChecker;
 use App\Services\TimeFormatter;
+use App\Services\TokenGenerator;
 use App\Entity\Account;
+use App\Entity\Authorization;
 use App\Entity\Player;
 use App\Entity\FriendRequest;
 use App\Entity\Friend;
@@ -28,20 +31,16 @@ class AccountController extends AbstractController
      * @Rest\RequestParam(name="email")
      * @Rest\RequestParam(name="password")
      */
-    public function accountRegister($userName, $email, $password)
+    public function accountRegister(EmailNotifier $en, TokenGenerator $tokenGen, $userName, $email, $password)
     {
         $em = $this->getDoctrine()->getManager();
 
-        $existingAccWithName = $em->getRepository(Account::class)->findOneBy([
-            'username' => $userName,
-        ]);
+        $existingAccWithName = $em->getRepository(Account::class)->findOneByUsername($userName);
 
         if ($existingAccWithName)
             return -2;
 
-        $existingAccWithEmail = $em->getRepository(Account::class)->findOneBy([
-            'email' => $email,
-        ]);
+        $existingAccWithEmail = $em->getRepository(Account::class)->findOneByEmail($email);
 
         if ($existingAccWithEmail)
             return -6;
@@ -58,9 +57,19 @@ class AccountController extends AbstractController
         $account->setFriendRequestPolicy(0);
         $account->setPrivateMessagePolicy(0);
         $account->setCommentHistoryPolicy(0);
-
+		$account->setIsVerified(false);
+		$account->setIsLocked(false);
         $em->persist($account);
         $em->flush();
+		
+		$auth = $em->getRepository(Authorization::class)->forUser($account->getId(), Authorization::SCOPE_ACCOUNT_VERIFY) ?? new Authorization();
+        $auth->setToken($tokenGen->generate($account));
+        $auth->setUser($account);
+		$auth->setScope(Authorization::SCOPE_ACCOUNT_VERIFY);
+        $em->persist($auth);
+        $em->flush();
+		
+		$en->sendAccountVerificationEmail($auth);
 
         return 1;
     }
@@ -79,6 +88,22 @@ class AccountController extends AbstractController
 	public function accountManagement()
 	{
 		return $this->redirect(getenv('DASHBOARD_ROOT_URL'));
+	}
+	
+	/**
+	 * @Rest\Get("/accounts/lostusername.php", name="lost_username")
+	 */
+	public function forgotUsername()
+	{
+		return $this->redirect(getenv('DASHBOARD_ROOT_URL') . '/forgot-password');
+	}
+	
+	/**
+	 * @Rest\Get("/accounts/lostpassword.php", name="lost_password")
+	 */
+	public function forgotPassword()
+	{
+		return $this->redirect(getenv('DASHBOARD_ROOT_URL') . '/forgot-password');
 	}
 
     /**

@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 
@@ -33,6 +34,12 @@ class GDUserProvider implements UserProviderInterface
         $account = $em->getRepository(Account::class)->findOneByUsername($username);
 
         if ($account) {
+			if (!$account->getIsVerified()) {
+				throw new CustomUserMessageAuthenticationException("This account has not been verified. Check your email to verify your account.");
+			}
+			if ($account->getIsLocked()) {
+				throw new CustomUserMessageAuthenticationException("This account has been terminated.");
+			}
             $player = $em->getRepository(Player::class)->findUnregisteredByDeviceID($this->udid);
             if (!$account->getPlayer()) {
 				if (!$player) {

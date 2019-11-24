@@ -16,6 +16,7 @@ use App\Entity\LevelReport;
 use App\Entity\PeriodicLevel;
 use App\Entity\Player;
 use App\Entity\LevelSuggestion;
+use App\Services\EmailNotifier;
 use App\Services\GDAuthChecker;
 use App\Services\Base64URL;
 use App\Services\DifficultyCalculator;
@@ -26,6 +27,8 @@ use App\Services\TokenGenerator;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\InvalidParametersException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+
+use \ReCaptcha\ReCaptcha;
 
 class RestApiController extends FOSRestController
 {
@@ -329,25 +332,35 @@ class RestApiController extends FOSRestController
      * @Rest\RequestParam(name="password", nullable=true, default=null)
      * @Rest\RequestParam(name="email", nullable=true, default=null)
      */
-    public function updateCredentials(Security $s, StrictValidator $v, TokenGenerator $tokenGen, $username, $password, $email)
+    public function updateCredentials(Security $s, StrictValidator $v, TokenGenerator $tokenGen, EmailNotifier $en, $username, $password, $email)
     {
         $em = $this->getDoctrine()->getManager();
 
         $user = $s->getUser()->getAccount();
-        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId(), Authorization::SCOPE_LOGIN);
+		
+		$requireEmailReverification = $email && $email != $user->getEmail();
 
         $user->setUsername($username ?? $user->getUsername());
         $user->setPassword($password ?? $user->getPassword());
         $user->setEmail($email ?? $user->getEmail());
-        $auth->setToken($tokenGen->generate($user->getPlayer()));
-        $auth->setUser($user);
+		$auth = $auth ?? new Authorization();
+		$auth->setUser($user);
+		$auth->setToken($tokenGen->generate($user->getPlayer()));
+		$auth->setScope($requireEmailReverification ? Authorization::SCOPE_ACCOUNT_VERIFY : Authorization::SCOPE_LOGIN);
 
         $v->validate($user);
-        $em->flush();
+		
+		if ($requireEmailReverification) {
+			$user->setIsVerified(false);
+			$en->sendAccountVerificationEmail($auth);
+		}
 
+        $em->flush();
+		
         return [
-            'user' => $user,
-            'token' => $auth->getToken(),
+            'user' => $requireEmailReverification ? null : $user,
+            'token' => $requireEmailReverification ? null : $auth->getToken(),
         ];
     }
     
@@ -362,12 +375,12 @@ class RestApiController extends FOSRestController
         $em = $this->getDoctrine()->getManager();
 
         $user = $s->getUser()->getAccount();
-        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId(), Authorization::SCOPE_LOGIN) ?? new Authorization();
 
         $user->setPassword($password);
         $auth->setToken($tokenGen->generate($user->getPlayer()));
         $auth->setUser($user);
-
+		$auth->setScope(Authorization::SCOPE_LOGIN);
         $em->persist($auth);
         $em->flush();
 
@@ -383,7 +396,7 @@ class RestApiController extends FOSRestController
      *
      * @Rest\RequestParam(name="email")
      */
-    public function forgotPassword(\Swift_Mailer $mailer, TokenGenerator $tokenGen, $email)
+    public function forgotPassword(EmailNotifier $en, TokenGenerator $tokenGen, $email)
     {
         $em = $this->getDoctrine()->getManager();
         $user = $em->getRepository(Account::class)->findOneByEmail($email);
@@ -391,21 +404,50 @@ class RestApiController extends FOSRestController
         if (!$user)
             throw new InvalidParametersException("Unknown email");
 
-        $auth = $em->getRepository(Authorization::class)->forUser($user->getId()) ?? new Authorization();
+        $auth = $em->getRepository(Authorization::class)->forUser($user->getId(), Authorization::SCOPE_PASSWORD_RESET) ?? new Authorization();
         $auth->setToken($tokenGen->generate($user->getPlayer()));
         $auth->setUser($user);
+		$auth->setScope(Authorization::SCOPE_PASSWORD_RESET);
         $em->persist($auth);
         $em->flush();
 
-        $link = getenv('DASHBOARD_ROOT_URL') . '/recover-password?token=' . $auth->getToken();
-
-        $message = (new \Swift_Message('Reset password'))
-            ->setTo($email)
-            ->setBody("Hello,\n\nYour username is: " . $user->getUsername() . ".\nTo reset your password, follow this link: " . $link, 'text/plain');
-
-        $mailer->send($message);
+        $en->sendPasswordResetEmail($auth);
 
         return null;
+    }
+
+    /**
+     * @Rest\Post("/public/verify", name="api_verify_account")
+     * @Rest\View
+	 *
+	 * @Rest\RequestParam(name="token")
+	 * @Rest\RequestParam(name="captcha_response")
+     */
+    public function verifyAccount($token, $captcha_response)
+    {
+		$recaptcha = new ReCaptcha(getenv('GOOGLE_RECAPTCHA_SITE_KEY'));
+		$recaptchaResult = $recaptcha->verify($captcha_response, $_SERVER['REMOTE_ADDR']);
+		
+		if (!$recaptchaResult->isSuccess()) {
+			throw new InvalidParametersException("Invalid captcha");
+		}
+		
+        $em = $this->getDoctrine()->getManager();
+		
+        $auth = $em->getRepository(Authorization::class)->findOneBy([
+			'token' => $token,
+			'scope' => Authorization::SCOPE_ACCOUNT_VERIFY,
+		]);
+		if (!$auth) {
+            throw new InvalidParametersException("Invalid token");
+		}
+		
+		$user = $auth->getUser();
+		$user->setIsVerified(true);
+		$em->remove($auth);
+		$em->flush();
+		
+		return null;
     }
 	
 	/**

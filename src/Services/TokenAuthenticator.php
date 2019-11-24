@@ -75,6 +75,12 @@ class TokenAuthenticator extends AbstractGuardAuthenticator
 
         if (!$auth)
         	throw new CustomUserMessageAuthenticationException("Invalid token");
+		
+        if (!$auth->getUser()->getIsVerified())
+        	throw new CustomUserMessageAuthenticationException("This account has not been verified. Check your email to verify your account.");
+		
+        if ($auth->getUser()->getIsLocked())
+        	throw new CustomUserMessageAuthenticationException("This account has been terminated.");
 
         return $auth->getUser()->getPlayer();
     }
