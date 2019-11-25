@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Security\Core\Security;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use FOS\RestBundle\Controller\Annotations as Rest;
 
@@ -31,7 +32,7 @@ class AccountController extends AbstractController
      * @Rest\RequestParam(name="email")
      * @Rest\RequestParam(name="password")
      */
-    public function accountRegister(EmailNotifier $en, TokenGenerator $tokenGen, $userName, $email, $password)
+    public function accountRegister(EmailNotifier $en, TokenGenerator $tokenGen, ValidatorInterface $v, $userName, $email, $password)
     {
         $em = $this->getDoctrine()->getManager();
 
@@ -59,6 +60,9 @@ class AccountController extends AbstractController
         $account->setCommentHistoryPolicy(0);
 		$account->setIsVerified(false);
 		$account->setIsLocked(false);
+		if (count($v->validate($account))) {
+			return -1;
+		}
         $em->persist($account);
         $em->flush();
 		

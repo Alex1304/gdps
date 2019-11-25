@@ -24,8 +24,8 @@ use App\Services\PlayerManager;
 use App\Services\XORCipher;
 use App\Services\StrictValidator;
 use App\Services\TokenGenerator;
-use App\Exceptions\UnauthorizedException;
 use App\Exceptions\InvalidParametersException;
+use App\Exceptions\AccessDeniedException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 use \ReCaptcha\ReCaptcha;
@@ -446,6 +446,40 @@ class RestApiController extends FOSRestController
 		$user->setIsVerified(true);
 		$em->remove($auth);
 		$em->flush();
+		
+		return null;
+    }
+	
+	/**
+     * @Rest\Post("/public/resend-verification", name="api_resend_verification")
+     * @Rest\View
+	 *
+	 * @Rest\RequestParam(name="username")
+	 * @Rest\RequestParam(name="email", nullable=true, default=null)
+     */
+    public function resendVerification(StrictValidator $v, EmailNotifier $en, TokenGenerator $tokenGen, $username, $email)
+    {
+		$em = $this->getDoctrine()->getManager();
+		
+        $account = $em->getRepository(Account::class)->findOneByUsername($username);
+		if (!$account) {
+            throw new InvalidParametersException("Username " . $username . " does not exist");
+		}
+		if ($account->getIsVerified()) {
+			throw new AccessDeniedException("This account is already verified");
+		}
+		if ($email) {
+			$account->setEmail($email);
+			$v->validate($account);
+		}
+		
+		$auth = $em->getRepository(Authorization::class)->forUser($account, Authorization::SCOPE_ACCOUNT_VERIFY) ?? new Authorization();
+		$auth->setUser($account);
+		$auth->setToken($tokenGen->generate($account));
+		$auth->setScope(Authorization::SCOPE_ACCOUNT_VERIFY);
+		$em->flush();
+		
+		$en->sendAccountVerificationEmail($auth);
 		
 		return null;
     }

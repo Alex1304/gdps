@@ -129,6 +129,10 @@ class PlainPasswordAuthenticator extends AbstractGuardAuthenticator
         	'code' => Response::HTTP_FORBIDDEN,
             'message' => $message
         );
+		
+		if ($message === "This account has not been verified. Check your email to verify your account.") {
+			$data['verification_required'] = true;
+		}
 
         return new JsonResponse($data, Response::HTTP_FORBIDDEN);
     }

@@ -25,7 +25,9 @@ fos_rest:
         codes:
             App\Exceptions\InvalidParametersException: 400
             App\Exceptions\UnauthorizedException: 401
+            App\Exceptions\AccessDeniedException: 403
             
         messages:
             App\Exceptions\InvalidParametersException: true
             App\Exceptions\UnauthorizedException: true
+            App\Exceptions\AccessDeniedException: true
