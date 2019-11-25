@@ -88,7 +88,7 @@ class UnregisteredAuthenticator extends AbstractGuardAuthenticator
         if (!$player)
             return;
 		
-		if ($player->getAccount() && (!$player->getIsVerified() || $player->getIsLocked()))
+		if ($player->getAccount() && (!$player->getAccount()->getIsVerified() || $player->getAccount()->getIsLocked()))
 			return;
 
         return $player;
