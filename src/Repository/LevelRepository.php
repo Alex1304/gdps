@@ -68,18 +68,25 @@ class LevelRepository extends ServiceEntityRepository
 	
 	public function likeCount($levelID)
 	{
-		return $this->createQueryBuilder('l')
-			->select('COUNT(ll.id) - COUNT(ld.id) AS likeCount')
+		$likes = $this->createQueryBuilder('l')
+			->select('COUNT(ll.id)')
 			->join('l.likedBy', 'll')
-			->join('l.dislikedBy', 'ld')
-			->join('ll.account', 'lla')
-			->join('ld.account', 'lda')
+			->join('ll.account', 'a')
 			->where('l.id = :lid')
 			->setParameter('lid', $levelID)
-			->andWhere('lla.isVerified = 1')
-			->andWhere('lda.isVerified = 1')
+			->andWhere('a.isVerified = 1')
 			->getQuery()
 			->getSingleScalarResult();
+		$dislikes = $this->createQueryBuilder('l')
+			->select('COUNT(ld.id)')
+			->join('l.dislikedBy', 'ld')
+			->join('ld.account', 'a')
+			->where('l.id = :lid')
+			->setParameter('lid', $levelID)
+			->andWhere('a.isVerified = 1')
+			->getQuery()
+			->getSingleScalarResult();
+		return $likes - $dislikes;
 	}
 
     /**
