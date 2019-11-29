@@ -2,15 +2,14 @@
 
 {% block content %}
 	{% for comment in comments %}
-		{% set likes = (comment.likedBy|length - comment.dislikedBy|length) %}
 		{% if showLevelID %}
 			1~{{ comment.level.id }}~
 		{% endif %}
 		2~{{ comment.content }}~
 		3~{{ comment.author.id }}~
-		4~{{ likes }}~
+		4~{{ comment.likes }}~
 		5~0~
-		7~{% if likes < -3 %}1{% else %}0{% endif %}~
+		7~{% if comment.likes < -3 %}1{% else %}0{% endif %}~
 		9~{{ timeFormatter.format(comment.postedAt) }}~
 		6~{{ comment.id }}~
 		10~{{ comment.percent }}

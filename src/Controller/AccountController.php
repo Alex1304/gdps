@@ -127,10 +127,10 @@ class AccountController extends AbstractController
 
         $acc = $player->getAccount();
 
-        if ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target))
+        if ($acc && ($acc->getBlockedBy()->contains($target) || $acc->getBlockedAccounts()->contains($target)))
             return -1;
 
-        $self = $player->getAccount() ? $acc->getId() === $target->getId() : false;
+        $self = $acc && $acc->getId() === $target->getId();
         $notifCounters = [];
         $friendState = 0;
         $incomingFR = null;
@@ -139,7 +139,7 @@ class AccountController extends AbstractController
             $notifCounters['messages'] = $em->getRepository(PrivateMessage::class)->countNewPrivateMessages($acc->getId());
             $notifCounters['friends'] = $em->getRepository(Friend::class)->countNewFriends($acc->getId());
             $notifCounters['friendreqs'] = $em->getRepository(FriendRequest::class)->countUnreadIncomingFriendRequests($acc->getId());
-        } else {
+        } elseif ($acc) {
             if ($em->getRepository(Friend::class)->friendAB($acc->getId(), $target->getId()))
                 $friendState = 1;
             elseif ($incomingFR = $em->getRepository(FriendRequest::class)->friendRequestBySenderAndRecipient($target->getId(), $acc->getId()))

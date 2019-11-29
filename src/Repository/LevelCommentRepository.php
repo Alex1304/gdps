@@ -84,4 +84,20 @@ class LevelCommentRepository extends ServiceEntityRepository
 
         return $this->getPaginatedResult($qb, $page, $count);
     }
+	
+	public function likeCount($commentID)
+	{
+		return $this->createQueryBuilder('c')
+			->select('COUNT(cl.id) - COUNT(cd.id) AS likeCount')
+			->join('c.likedBy', 'cl')
+			->join('c.dislikedBy', 'cd')
+			->join('cl.account', 'cla')
+			->join('cd.account', 'cda')
+			->where('c.id = :cid')
+			->setParameter('cid', $commentID)
+			->andWhere('cla.isVerified = 1')
+			->andWhere('cda.isVerified = 1')
+			->getQuery()
+			->getSingleScalarResult();
+	}
 }

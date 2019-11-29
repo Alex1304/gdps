@@ -52,6 +52,35 @@ class LevelRepository extends ServiceEntityRepository
             'total' => $totalCount,
         ];
     }
+	
+	public function downloadCount($levelID)
+	{
+		return $this->createQueryBuilder('l')
+			->select('COUNT(d.id)')
+			->join('l.downloadedBy', 'd')
+			->join('d.account', 'a')
+			->where('l.id = :lid')
+			->setParameter('lid', $levelID)
+			->andWhere('a.isVerified = 1')
+			->getQuery()
+			->getSingleScalarResult();
+	}
+	
+	public function likeCount($levelID)
+	{
+		return $this->createQueryBuilder('l')
+			->select('COUNT(ll.id) - COUNT(ld.id) AS likeCount')
+			->join('l.likedBy', 'll')
+			->join('l.dislikedBy', 'ld')
+			->join('ll.account', 'lla')
+			->join('ld.account', 'lda')
+			->where('l.id = :lid')
+			->setParameter('lid', $levelID)
+			->andWhere('lla.isVerified = 1')
+			->andWhere('lda.isVerified = 1')
+			->getQuery()
+			->getSingleScalarResult();
+	}
 
     /**
      * Finds a level by a specific creator with a specific name

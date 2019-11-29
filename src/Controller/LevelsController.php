@@ -294,11 +294,10 @@ class LevelsController extends AbstractController
         if (!$level)
             return -1;
 
-        if ($inc) {
+        if ($inc && $s->getUser()) {
             $s->getUser()->addDownloadedLevel($level);
-			$level->setDownloads(count($level->getDownloadedBy()));
-            $em->persist($s->getUser());
-            $em->persist($level);
+            $em->flush();
+			$level->setDownloads($em->getRepository(Level::class)->downloadCount($level->getId()));
             $em->flush();
         }
 
@@ -353,8 +352,8 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevel($level);
                     $player->removeLikedLevel($level);
                 }
-				$level->setLikes(count($level->getLikedBy()) - count($level->getDislikedBy()));
-				$em->persist($level);
+				$em->flush();
+				$level->setLikes($em->getRepository(Level::class)->likeCount($level->getId()));
                 break;
             case 2:
                 $comment = $em->getRepository(LevelComment::class)->find($itemID);
@@ -368,8 +367,8 @@ class LevelsController extends AbstractController
                     $player->addDislikedLevelComment($comment);
                     $player->removeLikedLevelComment($comment);
                 }
-				$comment->setLikes(count($comment->getLikedBy()) - count($comment->getDislikedBy()));
-				$em->persist($comment);
+				$em->flush();
+				$comment->setLikes($em->getRepository(LevelComment::class)->likeCount($comment->getId()));
                 break;
             case 3:
                 $comment = $em->getRepository(AccountComment::class)->find($itemID);
@@ -383,15 +382,14 @@ class LevelsController extends AbstractController
                     $player->addDislikedAccountComment($comment);
                     $player->removeLikedAccountComment($comment);
                 }
-				$comment->setLikes(count($comment->getLikedBy()) - count($comment->getDislikedBy()));
-				$em->persist($comment);
+				$em->flush();
+				$comment->setLikes($em->getRepository(AccountComment::class)->likeCount($comment->getId()));
                 break;
             default:
                 return -1;
         }
 
-        $em->persist($player);
-        $em->flush();
+		$em->flush();
 
         return 1;
     }
