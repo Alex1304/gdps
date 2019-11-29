@@ -1,6 +1,5 @@
 swiftmailer:
     spool: { type: 'memory' }
-    delivery_addresses: ['%env(MAILER_DEV_DELIVERY_ADDRESS)%']
     sender_address: '%env(MAILER_SENDER)%'
 
     transport:        gmail

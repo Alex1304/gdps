@@ -48,7 +48,7 @@ class RestApiController extends FOSRestController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getAccount()->getId());
+        $auth = $em->getRepository(Authorization::class)->forUser($s->getUser()->getAccount()->getId(), Authorization::SCOPE_LOGIN);
 
         $em->remove($auth);
         $em->flush();
