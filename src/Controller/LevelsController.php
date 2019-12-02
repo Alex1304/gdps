@@ -458,6 +458,10 @@ class LevelsController extends AbstractController
     {
         $em = $this->getDoctrine()->getManager();
         $player = $s->getUser();
+		
+		if ($mode && !$s->isGranted('ROLE_MOD')) {
+			return -1;
+		}
 
         $level = $em->getRepository(Level::class)->find($levelID);
         if (!$level || !$level->getIsDemon())

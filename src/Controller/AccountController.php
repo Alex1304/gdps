@@ -150,9 +150,9 @@ class AccountController extends AbstractController
 		
 		$roles = $target->getPlayer()->getRoles();
 		$modState = 0;
-		if (in_array('ROLE_ELDERMOD', $roles)) {
+		if ($s->isGranted('ROLE_ELDERMOD')) {
 			$modState = 2;
-		} elseif (in_array('ROLE_MOD', $roles)) {
+		} elseif ($s->isGranted('ROLE_MOD')) {
 			$modState = 1;
 		}
 
@@ -707,12 +707,9 @@ class AccountController extends AbstractController
      */
 	public function requestMod(Security $s)
 	{
-		$player = $s->getUser();
-		$roles = $player->getRoles();
-		
-		if (in_array('ROLE_ELDERMOD', $roles)) {
+		if ($s->isGranted('ROLE_ELDERMOD')) {
 			return 2;
-		} elseif (in_array('ROLE_MOD', $roles)) {
+		} elseif ($s->isGranted('ROLE_MOD')) {
 			return 1;
 		}
 		

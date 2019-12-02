@@ -31,7 +31,7 @@ class CommentController extends AbstractController
     	$em = $this->getDoctrine()->getManager();
     	$player = $s->getUser();
 		
-		// Handling elder mod ban command
+		// Handling elder mod commands
 		$commandResult = $ech->handle($comment, $player);
 		if ($commandResult !== false) {
 			return $commandResult;
@@ -131,7 +131,7 @@ class CommentController extends AbstractController
 
     	$comment = $em->getRepository(LevelComment::class)->find($commentID);
 
-    	if ($comment->getAuthor()->getId() !== $player->getId() && $comment->getLevel()->getCreator()->getId() !== $player->getId())
+    	if (!$s->isGranted('ROLE_ELDERMOD') && $comment->getAuthor()->getId() !== $player->getId() && $comment->getLevel()->getCreator()->getId() !== $player->getId())
     		return -1;
 
     	$em->remove($comment);
@@ -199,7 +199,7 @@ class CommentController extends AbstractController
 
     	$comment = $em->getRepository(AccountComment::class)->find($commentID);
 
-    	if ($comment->getAuthor()->getId() !== $player->getAccount()->getId())
+    	if (!$s->isGranted('ROLE_ELDERMOD') && $comment->getAuthor()->getId() !== $player->getAccount()->getId())
     		return -1;
 
     	$em->remove($comment);

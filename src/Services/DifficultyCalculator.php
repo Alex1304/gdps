@@ -82,6 +82,9 @@ class DifficultyCalculator
 	 */
 	private function fairRound($val, $min, $max)
 	{
+		if ($val == $max) {
+			return $max;
+		}
 		$n = $max - $min;
 		$normalizedVal = $val - $min;
 		return $min + floor($normalizedVal * ($n + 1) / $n);

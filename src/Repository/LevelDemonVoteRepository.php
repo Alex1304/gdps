@@ -36,8 +36,11 @@ class LevelDemonVoteRepository extends ServiceEntityRepository
 		$result = $this->createQueryBuilder('ldv')
             ->select('AVG(ldv.demonValue) AS avgVotes')
             ->join('ldv.level', 'l')
+			->join('ldv.player', 'p')
+			->join('p.account', 'a')
             ->where('l.id = :id')
             ->setParameter('id', $levelID)
+			->andWhere('a.isVerified = 1')
 			->andWhere('ldv.isModVote = ' . $isModVote)
             ->groupBy('l.id')
             ->getQuery()
@@ -51,12 +54,12 @@ class LevelDemonVoteRepository extends ServiceEntityRepository
         $playerAvg = $this->averageVotesForLevel0($levelID, 0);
 		$modAvg = $this->averageVotesForLevel0($levelID, 1);
 		
-		if ($playerAvg === null) {
-			return $modAvg;
-		} elseif ($modAvg === null) {
-			return $playerAvg;
-		} elseif ($playerAvg === null && $modAvg === null) {
+		if (!$playerAvg && !$modAvg) {
 			return 0;
+		} elseif (!$modAvg) {
+			return $playerAvg;
+		} elseif (!$playerAvg) {
+			return $modAvg;
 		}
 		return (2 * $playerAvg + $modAvg) / 3;
     }
